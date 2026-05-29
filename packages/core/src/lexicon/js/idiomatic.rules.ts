@@ -225,4 +225,162 @@ export const idiomaticRules: Rule[] = [
       examples: [{ code: 'app.listen(3000);', subtitle: 'On démarre le serveur sur le port 3000' }],
     },
   },
+
+  {
+    id: 'js.json',
+    layer: 'idiomatic',
+    query:
+      '(call_expression function: (member_expression object: (identifier) @o property: (property_identifier) @p) (#eq? @o "JSON") (#any-of? @p "parse" "stringify")) @site',
+    render: (ctx) =>
+      ctx.t.name(ctx.caps.p) === 'parse' ? 'On transforme du texte JSON en objet' : 'On transforme une valeur en texte JSON',
+    doc: {
+      summary: 'JSON.parse / JSON.stringify.',
+      examples: [
+        { code: 'JSON.parse(body);', subtitle: 'On transforme du texte JSON en objet' },
+        { code: 'JSON.stringify(user);', subtitle: 'On transforme une valeur en texte JSON' },
+      ],
+    },
+  },
+
+  {
+    id: 'js.fs',
+    layer: 'idiomatic',
+    query:
+      '(call_expression function: (member_expression object: (identifier) @o property: (property_identifier) @p) (#eq? @o "fs") (#any-of? @p "readFileSync" "readFile" "writeFileSync" "writeFile" "existsSync" "mkdirSync" "readdirSync" "unlinkSync")) @site',
+    render(ctx) {
+      const p = ctx.t.name(ctx.caps.p);
+      if (p.includes('dir') && p.startsWith('read')) return "On liste le contenu d'un dossier";
+      if (p.startsWith('read')) return "On lit le contenu d'un fichier";
+      if (p.startsWith('write')) return 'On écrit dans un fichier';
+      if (p === 'existsSync') return 'On vérifie si un fichier existe';
+      if (p === 'mkdirSync') return 'On crée un dossier';
+      if (p === 'unlinkSync') return 'On supprime un fichier';
+      return null;
+    },
+    doc: {
+      summary: 'Opérations fichier (module fs).',
+      examples: [
+        { code: "fs.readFileSync('config.json');", subtitle: "On lit le contenu d'un fichier" },
+        { code: "fs.writeFileSync('out.txt', data);", subtitle: 'On écrit dans un fichier' },
+      ],
+    },
+  },
+
+  {
+    id: 'js.path',
+    layer: 'idiomatic',
+    query:
+      '(call_expression function: (member_expression object: (identifier) @o property: (property_identifier) @p) (#eq? @o "path") (#any-of? @p "join" "resolve")) @site',
+    render: () => 'On assemble un chemin de fichier',
+    doc: {
+      summary: 'path.join / path.resolve.',
+      examples: [{ code: "path.join(dir, 'file.txt');", subtitle: 'On assemble un chemin de fichier' }],
+    },
+  },
+
+  {
+    id: 'js.object-util',
+    layer: 'idiomatic',
+    query:
+      '(call_expression function: (member_expression object: (identifier) @o property: (property_identifier) @p) (#eq? @o "Object") (#any-of? @p "keys" "values" "entries")) @site',
+    render(ctx) {
+      const p = ctx.t.name(ctx.caps.p);
+      if (p === 'keys') return "On récupère les clés de l'objet";
+      if (p === 'values') return "On récupère les valeurs de l'objet";
+      return "On récupère les paires clé-valeur de l'objet";
+    },
+    doc: {
+      summary: 'Object.keys / values / entries.',
+      examples: [
+        { code: 'Object.keys(user);', subtitle: "On récupère les clés de l'objet" },
+        { code: 'Object.entries(map);', subtitle: "On récupère les paires clé-valeur de l'objet" },
+      ],
+    },
+  },
+
+  {
+    id: 'js.array-mutate',
+    layer: 'idiomatic',
+    query:
+      '(call_expression function: (member_expression property: (property_identifier) @p) (#any-of? @p "push" "pop" "shift" "unshift" "includes")) @site',
+    render(ctx) {
+      switch (ctx.t.name(ctx.caps.p)) {
+        case 'push':
+          return 'On ajoute un élément à la collection';
+        case 'pop':
+          return 'On retire le dernier élément de la collection';
+        case 'shift':
+          return 'On retire le premier élément de la collection';
+        case 'unshift':
+          return 'On ajoute un élément au début de la collection';
+        case 'includes':
+          return 'On vérifie si la collection contient cet élément';
+        default:
+          return null;
+      }
+    },
+    doc: {
+      summary: 'Ajout / retrait / test sur une collection.',
+      examples: [
+        { code: 'items.push(x);', subtitle: 'On ajoute un élément à la collection' },
+        { code: 'list.includes(id);', subtitle: 'On vérifie si la collection contient cet élément' },
+      ],
+    },
+  },
+
+  {
+    id: 'js.dom-event',
+    layer: 'idiomatic',
+    query:
+      '(call_expression function: (member_expression property: (property_identifier) @p) (#eq? @p "addEventListener") arguments: (arguments (string) @evt)) @site',
+    render: (ctx) => `Quand l'évènement ${ctx.t.lit(ctx.caps.evt)} survient, on réagit`,
+    doc: {
+      summary: 'addEventListener.',
+      examples: [{ code: "btn.addEventListener('click', onClick);", subtitle: "Quand l'évènement click survient, on réagit" }],
+    },
+  },
+
+  {
+    id: 'js.react-hooks',
+    layer: 'idiomatic',
+    query:
+      '(call_expression function: (identifier) @f (#any-of? @f "useState" "useEffect" "useRef" "useMemo" "useCallback" "useContext")) @site',
+    render(ctx) {
+      switch (ctx.t.name(ctx.caps.f)) {
+        case 'useState':
+          return 'On crée un état local réactif';
+        case 'useEffect':
+          return 'On déclenche un effet (au rendu ou quand une dépendance change)';
+        case 'useRef':
+          return 'On garde une référence persistante entre les rendus';
+        case 'useMemo':
+          return 'On mémorise une valeur calculée';
+        case 'useCallback':
+          return 'On mémorise une fonction stable entre les rendus';
+        case 'useContext':
+          return 'On lit une valeur partagée (contexte React)';
+        default:
+          return null;
+      }
+    },
+    doc: {
+      summary: 'Hooks React.',
+      examples: [
+        { code: 'useState(0)', subtitle: 'On crée un état local réactif' },
+        { code: 'useEffect(() => {}, [])', subtitle: 'On déclenche un effet (au rendu ou quand une dépendance change)' },
+      ],
+    },
+  },
+
+  {
+    id: 'js.module-exports',
+    layer: 'idiomatic',
+    query:
+      '(assignment_expression left: (member_expression object: (identifier) @o property: (property_identifier) @p) (#eq? @o "module") (#eq? @p "exports")) @site',
+    render: () => "On exporte (rend disponible à l'extérieur du module)",
+    doc: {
+      summary: 'module.exports (CommonJS).',
+      examples: [{ code: 'module.exports = router;', subtitle: "On exporte (rend disponible à l'extérieur du module)" }],
+    },
+  },
 ];

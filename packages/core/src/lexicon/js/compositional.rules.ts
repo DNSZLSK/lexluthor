@@ -106,4 +106,15 @@ export const compositionalRules: Rule[] = [
       examples: [{ code: 'try { risky(); } catch (e) { handle(e); }', subtitle: "En cas d'erreur (e) :" }],
     },
   },
+
+  {
+    id: 'js.switch',
+    layer: 'compositional',
+    query: '(switch_statement value: (parenthesized_expression (_) @disc)) @site',
+    render: (ctx) => `Selon ${ctx.t.truncate(ctx.text(ctx.caps.disc), 40)} :`,
+    doc: {
+      summary: 'Aiguillage switch.',
+      examples: [{ code: 'switch (status) { case 200: ok(); break; }', subtitle: 'Selon status :' }],
+    },
+  },
 ];
