@@ -19,6 +19,7 @@ const nm = join(root, 'node_modules');
 const dests = [
   join(root, 'packages', 'core', 'wasm'),
   join(root, 'apps', 'web', 'public', 'wasm'),
+  join(root, 'apps', 'vscode', 'media', 'wasm'),
 ];
 
 /** Cherche recursivement un fichier par nom exact, retourne le 1er chemin trouve. */

@@ -1,0 +1,89 @@
+{
+  "name": "lexluthor",
+  "displayName": "LexLuthor — VOSTFR du code",
+  "description": "Sous-titres en langage naturel sous ton code, toujours actifs. Déterministe, offline, sans IA. Alertes sécu intégrées.",
+  "version": "0.2.0",
+  "publisher": "DNSZLSK",
+  "private": true,
+  "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/DNSZLSK/lexluthor.git" },
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Education", "Visualization", "Linters"],
+  "keywords": ["subtitles", "readability", "onboarding", "code reading", "security"],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onLanguage:javascript",
+    "onLanguage:javascriptreact",
+    "onLanguage:typescript"
+  ],
+  "contributes": {
+    "commands": [
+      { "command": "lexluthor.toggle", "title": "LexLuthor : activer/désactiver les sous-titres", "category": "LexLuthor" },
+      { "command": "lexluthor.cycleDensity", "title": "LexLuthor : changer la densité des sous-titres", "category": "LexLuthor" },
+      { "command": "lexluthor.cycleRenderStyle", "title": "LexLuthor : basculer cinéma / fin de ligne", "category": "LexLuthor" }
+    ],
+    "configuration": {
+      "title": "LexLuthor",
+      "properties": {
+        "lexluthor.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Affiche les sous-titres automatiquement (toujours actif)."
+        },
+        "lexluthor.renderStyle": {
+          "type": "string",
+          "enum": ["inline", "cinema"],
+          "enumDescriptions": [
+            "Annotation grisée en fin de ligne (fiable, façon GitLens).",
+            "EXPÉRIMENTAL : sous-titre sous la ligne (hack CSS, peut mal s'afficher selon la version de VS Code)."
+          ],
+          "default": "inline",
+          "description": "Style de rendu des sous-titres. 'cinema' tente l'affichage sous la ligne (expérimental)."
+        },
+        "lexluthor.humanLanguage": {
+          "type": "string",
+          "enum": ["fr"],
+          "default": "fr",
+          "description": "Langue des sous-titres (EN/ES à venir)."
+        },
+        "lexluthor.languages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["javascript", "javascriptreact", "typescript"],
+          "description": "Identifiants de langage VS Code où les sous-titres s'affichent."
+        },
+        "lexluthor.density": {
+          "type": "string",
+          "enum": ["all", "idiomatic", "headers"],
+          "enumDescriptions": [
+            "Tout sous-titrer (y compris les déclarations triviales).",
+            "Idiomes + structures + alertes (on masque les déclarations triviales). Recommandé.",
+            "Structures + alertes seulement (densité minimale)."
+          ],
+          "default": "idiomatic",
+          "description": "Anti-encombrement : combien de sous-titres afficher."
+        },
+        "lexluthor.security.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Signale les patterns sensibles (eval, base64, child_process…) en diagnostics rouges."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "test": "vitest run",
+    "package": "node esbuild.mjs --production && vsce package --no-dependencies -o lexluthor.vsix"
+  },
+  "dependencies": {
+    "@lexluthor/core": "*",
+    "web-tree-sitter": "0.26.9"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.0",
+    "esbuild": "^0.25.0"
+  }
+}

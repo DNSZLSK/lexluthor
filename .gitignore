@@ -10,6 +10,9 @@ packages/core/wasm/
 apps/web/public/wasm/
 apps/vscode/media/wasm/
 
+# Artefacts d'extension VS Code
+*.vsix
+
 # Logs / divers
 *.log
 .devserver.log
