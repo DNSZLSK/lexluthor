@@ -21,6 +21,9 @@ Une extension **toujours-active** : tu ouvres un `.js`/`.ts`, les sous-titres ap
 - Packagée en **`apps/vscode/lexluthor.vsix`** (493 Ko), prête à installer.
 - **3 tests runtime** verts (chargement WASM embarqué + sous-titres + alertes).
 
+### 3. Dictionnaire enrichi ✅
++9 idiomes JS fréquents pour que tes vrais fichiers « parlent » davantage : `JSON.parse/stringify`, `fs.*` (lecture/écriture fichier), `path.join`, `Object.keys/values/entries`, mutations de collection (`push`/`includes`…), `addEventListener`, **hooks React** (`useState`/`useEffect`…), `module.exports`, `switch`. Total : **129 tests verts** (122 cœur + 4 web + 3 extension).
+
 ## 👀 Le point que tu dois trancher à l'œil : cinéma vs fin-de-ligne
 
 Tu voulais **priorité au mode cinéma** (sous-titre *sous* la ligne). Honnêtement : **je n'ai pas pu le vérifier visuellement** (pas de VS Code « à l'œil » en autonomie). Et techniquement, VS Code n'a **pas** d'API de ligne virtuelle — le « sous la ligne » repose sur un hack CSS (`display:block` injecté) qui *peut* être neutralisé par VS Code.
@@ -55,5 +58,7 @@ La webapp démonstrateur marche toujours : `npm run dev` (puis le port affiché)
 ## Commits de la nuit
 - `1ad254a` — Phase 0 monorepo (packages/core + apps/web + WasmProvider/createSubtitler)
 - `a1b3d55` — extension VS Code MVP (cinéma+inline, diagnostics sécu, status bar)
+- `23305b3` — WAKEUP + icône extension (monogramme LL) + config F5 dev
+- `0cccb84` — +9 idiomes JS (JSON, fs, path, Object.*, collections, addEventListener, hooks React, module.exports, switch)
 
-Bon réveil 🌅
+Tout est sur `main`, vert, sans `Co-Authored-By`. Bon réveil 🌅
