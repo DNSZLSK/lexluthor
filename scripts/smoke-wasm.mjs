@@ -7,7 +7,7 @@ import { Parser, Language, Query } from 'web-tree-sitter';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const wasmDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'wasm');
+const wasmDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'packages', 'core', 'wasm');
 
 await Parser.init();
 console.log('[smoke] moteur web-tree-sitter initialise');

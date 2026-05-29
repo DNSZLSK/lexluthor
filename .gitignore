@@ -6,7 +6,9 @@ dist/
 
 # Binaires WASM : régénérés par le postinstall (scripts/copy-wasm.mjs) depuis
 # node_modules, donc inutile de les versionner. `npm install` les recopie.
-public/wasm/
+packages/core/wasm/
+apps/web/public/wasm/
+apps/vscode/media/wasm/
 
 # Logs / divers
 *.log

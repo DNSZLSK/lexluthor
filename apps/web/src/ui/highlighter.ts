@@ -7,7 +7,7 @@ import jsLang from '@shikijs/langs/javascript';
 import tsLang from '@shikijs/langs/typescript';
 import javaLang from '@shikijs/langs/java';
 import githubDark from '@shikijs/themes/github-dark';
-import type { LangId } from '../engine/types';
+import type { LangId } from '@lexluthor/core';
 import type { Token } from './tokens';
 
 const THEME = 'github-dark';

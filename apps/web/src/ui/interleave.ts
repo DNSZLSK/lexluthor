@@ -1,4 +1,4 @@
-import type { Subtitle } from '../engine/types';
+import type { Subtitle } from '@lexluthor/core';
 import type { Token } from './tokens';
 
 export type RenderRow =

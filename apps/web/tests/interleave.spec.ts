@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { interleave } from '../src/ui/interleave';
-import type { Subtitle } from '../src/engine/types';
+import type { Subtitle } from '@lexluthor/core';
 import type { Token } from '../src/ui/tokens';
 
 function line(text: string): Token[] {

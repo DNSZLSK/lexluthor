@@ -6,7 +6,7 @@ import { createTypeScriptAdapter } from '../src/adapters/typescript';
 import { createEngine } from '../src/engine/engine';
 import type { LangId, SubtitleEngine } from '../src/engine/types';
 
-export const WASM_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'wasm');
+export const WASM_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'wasm');
 
 export const GRAMMAR_FILES: Record<string, string> = {
   javascript: 'tree-sitter-javascript.wasm',

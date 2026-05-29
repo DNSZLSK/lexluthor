@@ -1,0 +1,19 @@
+{
+  "name": "@lexluthor/core",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Coeur agnostique de lexluthor : moteur de sous-titrage deterministe + lexique tree-sitter. Aucun import DOM/Node specifique.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "web-tree-sitter": "0.26.9"
+  }
+}
