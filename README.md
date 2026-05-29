@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" alt="LexLuthor" width="190" />
+  <img src="docs/logo.png" alt="LexLuthor" width="260" />
 </p>
 
 <p align="center"><strong>Sous-titres pour code source. Comme au cinéma, mais pour lire du code.</strong></p>
