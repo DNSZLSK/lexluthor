@@ -1,0 +1,75 @@
+.player {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 0 40px;
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.65;
+  background: var(--bg);
+}
+
+.player:empty::after {
+  content: "Colle du code à gauche. Les sous-titres apparaissent ici.";
+  display: block;
+  padding: 24px;
+  color: var(--faint);
+  font-family: var(--sans);
+  font-size: 13px;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+}
+
+.gutter {
+  flex: 0 0 46px;
+  text-align: right;
+  padding-right: 14px;
+  color: var(--faint);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.row--code .code {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--fg);
+  padding-right: 16px;
+}
+
+.row--subtitle {
+  padding: 0 0 6px;
+}
+
+.row--subtitle .subtitle {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--amber);
+  padding-right: 16px;
+  padding-left: calc(var(--depth, 0) * 18px);
+}
+
+.row--subtitle .subtitle::before {
+  content: "› ";
+  font-style: normal;
+  color: var(--amber-dim);
+}
+
+.row--subtitle.is-alert .subtitle {
+  color: var(--signal);
+  font-style: normal;
+  font-weight: 600;
+}
+.row--subtitle.is-alert .subtitle::before {
+  content: "";
+}
+
+.row--subtitle.is-faint .subtitle {
+  color: var(--faint);
+}

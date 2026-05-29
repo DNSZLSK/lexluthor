@@ -1,0 +1,30 @@
+{
+  "name": "lexluthor",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sous-titreur de code deterministe (VOSTFR du code) - parser tree-sitter + lexique de regles, 100% offline.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "copy-wasm": "node scripts/copy-wasm.mjs",
+    "postinstall": "node scripts/copy-wasm.mjs"
+  },
+  "dependencies": {
+    "@shikijs/langs": "4.1.0",
+    "@shikijs/themes": "4.1.0",
+    "@vscode/tree-sitter-wasm": "0.3.1",
+    "shiki": "4.1.0",
+    "web-tree-sitter": "0.26.9"
+  },
+  "devDependencies": {
+    "@types/node": "24.7.0",
+    "playwright": "^1.49.1",
+    "typescript": "6.0.3",
+    "vite": "8.0.14",
+    "vitest": "4.1.7"
+  }
+}

@@ -1,0 +1,139 @@
+:root {
+  --bg: #0d1117;
+  --bg-elev: #161b22;
+  --bg-input: #0a0d12;
+  --border: #232a33;
+  --fg: #c9d1d9;
+  --fg-dim: #8b949e;
+  --amber: #ffb454;
+  --amber-dim: #b9863f;
+  --logo-silver: #e3e6e9;
+  --logo-green: #7faa86;
+  --signal: #ff6b6b;
+  --faint: #6e7681;
+  --accent: #58a6ff;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", Menlo, Consolas, monospace;
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--sans);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.topbar {
+  padding: 18px 24px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  /* couleurs du logo : "lex" argent métallique, "luthor" vert sauge */
+  color: var(--logo-silver);
+}
+.logo span {
+  color: var(--logo-green);
+}
+
+.tagline {
+  margin: 4px 0 0;
+  color: var(--fg-dim);
+  font-size: 13px;
+}
+
+.layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  min-height: 0;
+}
+
+@media (max-width: 880px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pane {
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.pane__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.field-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+}
+
+.status {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--amber-dim);
+}
+
+.lang-select,
+.btn {
+  background: var(--bg-input);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-family: var(--sans);
+  cursor: pointer;
+}
+.btn:hover {
+  border-color: var(--amber-dim);
+  color: var(--amber);
+}
+
+.code-input {
+  flex: 1;
+  width: 100%;
+  resize: none;
+  border: 0;
+  outline: 0;
+  padding: 14px 16px;
+  background: var(--bg-input);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 13.5px;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
+.code-input::placeholder {
+  color: var(--faint);
+}

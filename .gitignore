@@ -1,0 +1,15 @@
+# Dépendances
+node_modules/
+
+# Build
+dist/
+
+# Binaires WASM : régénérés par le postinstall (scripts/copy-wasm.mjs) depuis
+# node_modules, donc inutile de les versionner. `npm install` les recopie.
+public/wasm/
+
+# Logs / divers
+*.log
+.devserver.log
+.DS_Store
+Thumbs.db

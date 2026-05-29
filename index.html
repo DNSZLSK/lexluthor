@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>lexluthor · VOSTFR du code</title>
+  </head>
+  <body>
+    <header class="topbar">
+      <h1 class="logo">lex<span>luthor</span></h1>
+      <p class="tagline">Le code, sous-titré. Tu lis, tu comprends. Comme un film en VOSTFR.</p>
+    </header>
+
+    <main class="layout">
+      <section class="pane pane--input">
+        <div class="pane__head">
+          <label for="lang" class="field-label">Langage</label>
+          <select id="lang" class="lang-select">
+            <option value="javascript">JavaScript</option>
+            <option value="typescript">TypeScript</option>
+            <option value="java" disabled>Java (bientôt)</option>
+          </select>
+          <!-- JavaScript et TypeScript actifs ; Java arrive (adapter + grammaire déjà prêts). -->
+          <button id="sample" class="btn" type="button">Exemple</button>
+        </div>
+        <textarea
+          id="code"
+          class="code-input"
+          spellcheck="false"
+          autocomplete="off"
+          autocapitalize="off"
+          placeholder="Colle du code ici…"
+        ></textarea>
+      </section>
+
+      <section class="pane pane--output">
+        <div class="pane__head">
+          <span class="field-label">Lecture sous-titrée</span>
+          <span id="status" class="status"></span>
+        </div>
+        <div id="player" class="player" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
