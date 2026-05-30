@@ -10,6 +10,9 @@ packages/core/wasm/
 apps/web/public/wasm/
 apps/vscode/media/wasm/
 
+# Bundle webview (régénéré par esbuild)
+apps/vscode/media/webview/
+
 # Artefacts d'extension VS Code
 *.vsix
 apps/vscode/tools/*.cjs

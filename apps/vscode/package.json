@@ -19,7 +19,8 @@
   ],
   "contributes": {
     "commands": [
-      { "command": "lexluthor.toggle", "title": "LexLuthor : activer/désactiver les sous-titres", "category": "LexLuthor" },
+      { "command": "lexluthor.openReader", "title": "LexLuthor : ouvrir le lecteur VOSTFR", "category": "LexLuthor" },
+      { "command": "lexluthor.toggleInline", "title": "LexLuthor : activer/désactiver les sous-titres en ligne", "category": "LexLuthor" },
       { "command": "lexluthor.cycleDensity", "title": "LexLuthor : changer la densité des sous-titres", "category": "LexLuthor" }
     ],
     "configuration": {
@@ -28,7 +29,12 @@
         "lexluthor.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Affiche les sous-titres automatiquement (toujours actif)."
+          "description": "Interrupteur principal de l'extension (diagnostics sécu compris)."
+        },
+        "lexluthor.inline.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sous-titres en ligne (fin de ligne, tronqués + complet au survol). Désactivé par défaut : la lecture principale est le lecteur VOSTFR (panneau)."
         },
         "lexluthor.humanLanguage": {
           "type": "string",
@@ -62,7 +68,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --noEmit -p tsconfig.json && node esbuild.mjs",
+    "build": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p webview/tsconfig.json && node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "test": "vitest run",
     "verify:wasm": "node verify-bundle.mjs",

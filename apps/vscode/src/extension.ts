@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { SubtitlerService } from './subtitler-service';
 import { RenderController } from './render-controller';
-import { createStatusBar, updateStatusBar } from './status-bar';
+import { ReaderPanel } from './reader-panel';
+import { createStatusBar } from './status-bar';
 
 const DENSITIES = ['all', 'idiomatic', 'headers'] as const;
 
@@ -12,7 +13,6 @@ export function activate(context: vscode.ExtensionContext): void {
   const status = createStatusBar();
 
   const cfg = (): vscode.WorkspaceConfiguration => vscode.workspace.getConfiguration('lexluthor');
-  updateStatusBar(status, cfg().get('enabled', true));
 
   async function cycle<T extends string>(key: string, values: readonly T[], fallback: T): Promise<void> {
     const cur = cfg().get<T>(key, fallback);
@@ -25,16 +25,15 @@ export function activate(context: vscode.ExtensionContext): void {
     diagnostics,
     controller,
     status,
-    vscode.commands.registerCommand('lexluthor.toggle', async () => {
-      const next = !cfg().get('enabled', true);
-      await cfg().update('enabled', next, vscode.ConfigurationTarget.Global);
-      updateStatusBar(status, next);
+    vscode.commands.registerCommand('lexluthor.openReader', () => ReaderPanel.show(context)),
+    vscode.commands.registerCommand('lexluthor.toggleInline', async () => {
+      const next = !cfg().get('inline.enabled', false);
+      await cfg().update('inline.enabled', next, vscode.ConfigurationTarget.Global);
+      void vscode.window.setStatusBarMessage(`LexLuthor : sous-titres en ligne ${next ? 'activés' : 'désactivés'}`, 2500);
     }),
     vscode.commands.registerCommand('lexluthor.cycleDensity', () => cycle('density', DENSITIES, 'idiomatic')),
     vscode.workspace.onDidChangeConfiguration((e) => {
-      if (!e.affectsConfiguration('lexluthor')) return;
-      updateStatusBar(status, cfg().get('enabled', true));
-      controller.onConfigChanged();
+      if (e.affectsConfiguration('lexluthor')) controller.onConfigChanged();
     }),
   );
 

@@ -1,0 +1,11 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": [],
+    "paths": {
+      "@lexluthor/core": ["../../../packages/core/src/index.ts"],
+      "@lexluthor/reader": ["../../../packages/reader/src/index.ts"]
+    }
+  },
+  "include": ["main.ts", "../../../packages/reader/src/css.d.ts"]
+}

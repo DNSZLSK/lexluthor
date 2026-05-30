@@ -1,20 +1,14 @@
 import esbuild from 'esbuild';
 
-// Bundle l'extension (TS + @lexluthor/core en source + web-tree-sitter) en un
-// seul CJS pour l'extension host Node. `vscode` reste externe (fourni par l'hôte).
+// Deux bundles :
+//  1) HOST : l'extension (CJS Node, vscode externe). web-tree-sitter bundlé ; fix
+//     import.meta.url (createRequire(undefined) sinon -> throw).
+//  2) WEBVIEW : le lecteur VOSTFR (navigateur, ESM). Bundle core + reader + Shiki +
+//     web-tree-sitter(navigateur). Les .wasm sont chargés au runtime par URL (pas bundlés).
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
-// web-tree-sitter (glue emscripten) appelle createRequire(import.meta.url). En CJS
-// bundle, import.meta.url vaut undefined -> createRequire(undefined) jette
-// ("filename must be ... Received undefined"). On le redefinit vers le fichier du
-// bundle (valide en Node), ce qui debloque l'init du moteur WASM.
-const FIX_IMPORT_META = {
-  define: { 'import.meta.url': '__lex_import_meta_url' },
-  banner: { js: "const __lex_import_meta_url = require('url').pathToFileURL(__filename).href;" },
-};
-
-const ctx = await esbuild.context({
+const host = {
   entryPoints: ['src/extension.ts'],
   bundle: true,
   platform: 'node',
@@ -25,12 +19,34 @@ const ctx = await esbuild.context({
   sourcemap: !production,
   minify: production,
   logLevel: 'info',
-  ...FIX_IMPORT_META,
-});
+  define: { 'import.meta.url': '__lex_import_meta_url' },
+  banner: { js: "const __lex_import_meta_url = require('url').pathToFileURL(__filename).href;" },
+};
+
+const webview = {
+  entryPoints: ['webview/main.ts'],
+  bundle: true,
+  platform: 'browser',
+  format: 'esm',
+  target: 'es2022',
+  outfile: 'media/webview/reader.js',
+  sourcemap: !production,
+  minify: production,
+  logLevel: 'info',
+  // web-tree-sitter contient des branches Node (import dynamique de fs/module…)
+  // jamais exécutées en navigateur. On les externalise (comme Vite le fait) pour
+  // que le bundle navigateur se construise ; ces imports ne sont jamais atteints.
+  external: [
+    'fs', 'fs/promises', 'path', 'module', 'url', 'crypto', 'os', 'worker_threads', 'perf_hooks', 'v8',
+    'node:fs', 'node:fs/promises', 'node:path', 'node:module', 'node:url', 'node:crypto', 'node:os',
+  ],
+};
 
 if (watch) {
-  await ctx.watch();
+  const hc = await esbuild.context(host);
+  const wc = await esbuild.context(webview);
+  await Promise.all([hc.watch(), wc.watch()]);
 } else {
-  await ctx.rebuild();
-  await ctx.dispose();
+  await esbuild.build(host);
+  await esbuild.build(webview);
 }

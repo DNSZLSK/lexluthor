@@ -49,6 +49,7 @@ function findFile(startDir, fileName, maxDepth = 6) {
 // (build recent compatible ABI avec le moteur 0.26).
 const targets = [
   { from: join(nm, 'web-tree-sitter'), file: 'web-tree-sitter.wasm' },
+  { from: join(nm, 'shiki'), file: 'onig.wasm' }, // oniguruma de Shiki, fetché par le webview
   { from: join(nm, '@vscode', 'tree-sitter-wasm'), file: 'tree-sitter-javascript.wasm' },
   { from: join(nm, '@vscode', 'tree-sitter-wasm'), file: 'tree-sitter-typescript.wasm' },
   { from: join(nm, '@vscode', 'tree-sitter-wasm'), file: 'tree-sitter-tsx.wasm' },

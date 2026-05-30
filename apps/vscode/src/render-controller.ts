@@ -108,30 +108,30 @@ export class RenderController implements vscode.Disposable {
     }
     if (!vscode.window.visibleTextEditors.includes(editor)) return; // l'éditeur a disparu pendant l'await
 
-    const allowed = LAYERS_BY_DENSITY[cfg.get('density', 'idiomatic')] ?? LAYERS_BY_DENSITY['idiomatic']!;
+    // L'inline (décorations en fin de ligne) est OPTIONNEL et OFF par défaut : la
+    // lecture principale est le panneau webview. Les diagnostics sécu, eux, restent.
     const securityOn = cfg.get('security.enabled', true);
-    const visibleRows = this.visibleRowSet(editor);
+    const inlineOn = cfg.get('inline.enabled', false);
+    const allowed = LAYERS_BY_DENSITY[cfg.get('density', 'idiomatic')] ?? LAYERS_BY_DENSITY['idiomatic']!;
+    const visibleRows = inlineOn ? this.visibleRowSet(editor) : null;
 
     const normalByRow = new Map<number, string[]>();
     const alertByRow = new Map<number, string[]>();
     const alertSubs: Subtitle[] = [];
 
     for (const s of subs) {
-      const isAlert = s.severity === 'alert';
-      if (isAlert && !securityOn) continue;
-      if (!isAlert && !allowed.has(s.layer)) continue;
-
       const row = s.range.startPosition.row;
-      if (isAlert) {
+      if (s.severity === 'alert') {
+        if (!securityOn) continue;
         alertSubs.push(s);
-        if (visibleRows.has(row)) pushText(alertByRow, row, s.text);
-      } else if (visibleRows.has(row)) {
+        if (inlineOn && visibleRows!.has(row)) pushText(alertByRow, row, s.text);
+      } else if (inlineOn && allowed.has(s.layer) && visibleRows!.has(row)) {
         pushText(normalByRow, row, s.text);
       }
     }
 
-    editor.setDecorations(this.decoTypes.normal, this.toOptions(doc, normalByRow, ' › '));
-    editor.setDecorations(this.decoTypes.alert, this.toOptions(doc, alertByRow, '  '));
+    editor.setDecorations(this.decoTypes.normal, inlineOn ? this.toOptions(doc, normalByRow, ' › ') : []);
+    editor.setDecorations(this.decoTypes.alert, inlineOn ? this.toOptions(doc, alertByRow, '  ') : []);
     if (securityOn) this.diagnostics.set(doc.uri, buildDiagnostics(alertSubs));
     else this.diagnostics.delete(doc.uri);
   }
@@ -153,9 +153,12 @@ export class RenderController implements vscode.Disposable {
     for (const [row, texts] of byRow) {
       if (row > maxLine) continue;
       const end = doc.lineAt(row).range.end;
+      const full = texts.join(' · ');
+      const shown = full.length > 40 ? `${full.slice(0, 39)}…` : full; // tronqué en bout de ligne
       opts.push({
         range: new vscode.Range(end, end),
-        renderOptions: { after: { contentText: prefix + texts.join(' · ') } },
+        renderOptions: { after: { contentText: prefix + shown } },
+        hoverMessage: new vscode.MarkdownString(full), // texte complet au survol
       });
     }
     return opts;
