@@ -66,6 +66,13 @@ export function createTreeSitterAdapter(cfg: AdapterConfig): LanguageAdapter {
           }
         }
       }
+      // Cas IIFE : (async () => { ... })() -> en-tete jusqu'au corps de la fonction immediate.
+      const callee = node.childForFieldName('function');
+      const fn = callee?.type === 'parenthesized_expression' ? callee.namedChildren[0] : callee;
+      if (fn && functionArgTypes.has(fn.type)) {
+        const fnBody = fn.childForFieldName('body');
+        if (fnBody) return fnBody.startIndex;
+      }
     }
     return null;
   }

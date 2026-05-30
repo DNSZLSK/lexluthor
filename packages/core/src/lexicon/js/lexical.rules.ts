@@ -85,18 +85,51 @@ export const lexicalRules: Rule[] = [
   },
 
   {
+    id: 'js.expression',
+    layer: 'lexical',
+    query: '(expression_statement (_) @expr) @site',
+    render(ctx) {
+      const expr = ctx.caps.expr;
+      // L'affectation a sa propre regle ; ici les appels / await / new « nus ».
+      if (!expr || expr.type === 'assignment_expression') return null;
+      // Un appel portant un callback (handle(() => {…})) : on ne le reclame pas en
+      // sous-arbre (ca avalerait le corps). Les idiomes utiles (Express, listen…) le couvrent ;
+      // sinon on laisse le corps re-rentrer.
+      const call = expr.type === 'await_expression' ? expr.namedChildren[0] : expr;
+      if (call?.type === 'call_expression') {
+        const callArgs = call.childForFieldName('arguments')?.namedChildren ?? [];
+        if (callArgs.some((a) => a.type === 'arrow_function' || a.type === 'function_expression')) return null;
+      }
+      const read = readExpr(expr); // null si verbe inconnu -> pas de sous-titre (jamais deviner)
+      return read ? `On ${read}` : null;
+    },
+    doc: {
+      summary: 'Instruction-expression « nue » (appel/await) : on lit le verbe connu, sinon rien.',
+      examples: [
+        { code: 'await provider.initEngine();', subtitle: 'On initialise le moteur' },
+        { code: 'users.set(id, user);', subtitle: "On enregistre l'utilisateur pour cet identifiant" },
+      ],
+    },
+  },
+
+  {
     id: 'js.return',
     layer: 'lexical',
     query: '(return_statement) @site',
     render(ctx) {
       const value = ctx.node.namedChildren[0];
       if (!value) return 'On sort de la fonction';
-      return `On renvoie ${ctx.t.truncate(ctx.text(value), 70)}`;
+      if (value.type === 'object') return 'On renvoie un objet';
+      if (value.type === 'array') return 'On renvoie une liste';
+      if (value.type === 'identifier') return `On renvoie ${subject(value.text)}`;
+      return `On renvoie ${ctx.t.truncate(ctx.text(value), 70)}`; // littéral fidèle (truncate aplatit)
     },
     doc: {
-      summary: 'Instruction return.',
+      summary: 'Instruction return : on nomme objet/liste, on lit le sujet.',
       examples: [
         { code: 'function f() { return total; }', subtitle: 'On renvoie total' },
+        { code: 'function f() { return adapter; }', subtitle: "On renvoie l'adapter" },
+        { code: 'function f() { return { id, name }; }', subtitle: 'On renvoie un objet' },
         { code: 'function f() { return; }', subtitle: 'On sort de la fonction' },
       ],
     },

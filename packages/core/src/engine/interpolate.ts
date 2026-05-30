@@ -33,7 +33,8 @@ export const interpolator: Interpolator = {
   },
 
   truncate(s, max = 90) {
-    const t = s.trim();
+    // Un sous-titre tient sur une ligne : on aplatit tout blanc interne en une espace.
+    const t = s.replace(/\s+/g, ' ').trim();
     return t.length <= max ? t : `${t.slice(0, max - 1).trimEnd()}…`;
   },
 };

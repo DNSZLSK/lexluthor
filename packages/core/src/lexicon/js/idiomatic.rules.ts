@@ -117,6 +117,23 @@ export const idiomaticRules: Rule[] = [
   },
 
   {
+    id: 'js.iife',
+    layer: 'idiomatic',
+    claims: 'header', // le corps de la fonction immediate re-rentre et est lu ligne a ligne
+    query: '(call_expression function: (parenthesized_expression [(arrow_function) (function_expression)] @fn)) @site',
+    render(ctx) {
+      const isAsync = ctx.caps.fn?.child(0)?.text === 'async';
+      return `On exécute aussitôt une fonction${isAsync ? ' asynchrone' : ''} :`;
+    },
+    doc: {
+      summary: 'Fonction immédiatement invoquée (IIFE) : on lit ensuite son corps.',
+      examples: [
+        { code: '(async () => { await go(); })();', subtitle: 'On exécute aussitôt une fonction asynchrone :' },
+      ],
+    },
+  },
+
+  {
     id: 'js.promise-reject',
     layer: 'idiomatic',
     query:
