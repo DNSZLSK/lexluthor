@@ -109,7 +109,7 @@ export class RenderController implements vscode.Disposable {
       console.error('[lexluthor]', err);
       if (!this.errorShown) {
         this.errorShown = true;
-        void vscode.window.showErrorMessage(`LexLuthor : échec du chargement — ${(err as Error).message}`);
+        void vscode.window.showErrorMessage(`LexLuthor : échec du chargement : ${(err as Error).message}`);
       }
       this.clear(editor);
       return;

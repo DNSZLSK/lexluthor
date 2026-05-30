@@ -12,6 +12,7 @@ apps/vscode/media/wasm/
 
 # Artefacts d'extension VS Code
 *.vsix
+apps/vscode/tools/*.cjs
 
 # Logs / divers
 *.log

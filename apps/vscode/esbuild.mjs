@@ -5,6 +5,15 @@ import esbuild from 'esbuild';
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
+// web-tree-sitter (glue emscripten) appelle createRequire(import.meta.url). En CJS
+// bundle, import.meta.url vaut undefined -> createRequire(undefined) jette
+// ("filename must be ... Received undefined"). On le redefinit vers le fichier du
+// bundle (valide en Node), ce qui debloque l'init du moteur WASM.
+const FIX_IMPORT_META = {
+  define: { 'import.meta.url': '__lex_import_meta_url' },
+  banner: { js: "const __lex_import_meta_url = require('url').pathToFileURL(__filename).href;" },
+};
+
 const ctx = await esbuild.context({
   entryPoints: ['src/extension.ts'],
   bundle: true,
@@ -16,6 +25,7 @@ const ctx = await esbuild.context({
   sourcemap: !production,
   minify: production,
   logLevel: 'info',
+  ...FIX_IMPORT_META,
 });
 
 if (watch) {

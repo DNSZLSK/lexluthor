@@ -1,8 +1,13 @@
 src/**
+tools/**
+tests/**
 esbuild.mjs
+verify-bundle.mjs
 tsconfig.json
+vitest.config.ts
 **/*.ts
 **/*.map
+*.vsix
 .gitignore
 node_modules/**
 .vscode/**

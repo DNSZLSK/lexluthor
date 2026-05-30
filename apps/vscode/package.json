@@ -1,6 +1,6 @@
 {
   "name": "lexluthor",
-  "displayName": "LexLuthor — VOSTFR du code",
+  "displayName": "LexLuthor · VOSTFR du code",
   "description": "Sous-titres en langage naturel sous ton code, toujours actifs. Déterministe, offline, sans IA. Alertes sécu intégrées.",
   "version": "0.2.0",
   "publisher": "DNSZLSK",
@@ -76,6 +76,7 @@
     "build": "tsc --noEmit -p tsconfig.json && node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "test": "vitest run",
+    "verify:wasm": "node verify-bundle.mjs",
     "package": "node esbuild.mjs --production && vsce package --no-dependencies -o lexluthor.vsix"
   },
   "dependencies": {
