@@ -1,0 +1,23 @@
+{
+  "name": "@lexluthor/cli",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Outil de curation lexluthor : `lexluthor scan <dossier>` lance le moteur deterministe en mode diagnostic et classe ce qu'il faut ajouter au dictionnaire.",
+  "bin": {
+    "lexluthor": "dist/cli.cjs"
+  },
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json && node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "scan": "node dist/cli.cjs scan"
+  },
+  "dependencies": {
+    "@lexluthor/core": "*",
+    "web-tree-sitter": "0.26.9"
+  },
+  "devDependencies": {
+    "@types/node": "24.7.0",
+    "esbuild": "^0.25.0"
+  }
+}

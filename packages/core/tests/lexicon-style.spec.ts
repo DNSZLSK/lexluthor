@@ -3,6 +3,7 @@ import { getEngine } from './helpers';
 import { samples } from '../src/data/samples';
 import { javascriptRules } from '../src/lexicon/js';
 import { typescriptRules } from '../src/lexicon/ts/types.rules';
+import { isCodeRecopied } from '../src/diagnostics/recopy';
 import type { LangId, SubtitleEngine } from '../src/engine/types';
 
 // Garde-fou outille du mantra "intention, pas syntaxe" : aucun sous-titre ne doit
@@ -45,12 +46,13 @@ describe('garde anti-recopie (sortie réelle du moteur)', () => {
     return items;
   }
 
-  it('aucun sous-titre multi-ligne, surdimensionné, ou contenant une flèche recopiée', () => {
+  it('aucun sous-titre multi-ligne, surdimensionné, ou contenant du code recopié', () => {
     for (const { code, lang } of corpus()) {
       for (const s of engine.subtitle(code, lang)) {
+        if (s.severity === 'alert') continue; // les alertes sécu citent volontairement le code suspect
         expect(s.text.includes('\n'), `saut de ligne dans : "${s.text}"`).toBe(false);
         expect(s.text.length, `sous-titre trop long : "${s.text}"`).toBeLessThanOrEqual(MAX_LEN);
-        expect(s.text.includes('=>'), `flèche de code recopiée dans : "${s.text}"`).toBe(false);
+        expect(isCodeRecopied(s.text), `code recopié dans : "${s.text}"`).toBe(false);
       }
     }
   });

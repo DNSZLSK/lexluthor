@@ -36,3 +36,8 @@ export type { Subtitler } from './subtitler';
 
 export { samples } from './data/samples';
 export type { Sample } from './data/samples';
+
+// Mode diagnostic (outil de curation `lexluthor scan`) : déterministe, pur.
+export { analyzeCoverage, mergeReport, emptyRepoReport, topN } from './diagnostics/coverage';
+export type { FileReport, RepoReport, Coverage, Ranked, RecopiedBucket } from './diagnostics/coverage';
+export { isCodeRecopied, dominantToken } from './diagnostics/recopy';

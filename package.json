@@ -12,6 +12,7 @@
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "dev": "npm run dev --workspace @lexluthor/web",
+    "scan": "node apps/cli/dist/cli.cjs scan",
     "copy-wasm": "node scripts/copy-wasm.mjs",
     "smoke-wasm": "node scripts/smoke-wasm.mjs",
     "postinstall": "node scripts/copy-wasm.mjs"
