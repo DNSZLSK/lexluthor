@@ -73,6 +73,42 @@ export const idiomaticRules: Rule[] = [
   },
 
   {
+    id: 'js.export',
+    layer: 'idiomatic',
+    query: '(export_statement) @site',
+    render(ctx) {
+      const node = ctx.node;
+      // export const/function/class/interface/type… : la déclaration interne se sous-titre seule.
+      if (node.childForFieldName('declaration')) return null;
+      const source = node.childForFieldName('source');
+      const clause = node.namedChildren.find((n) => n.type === 'export_clause');
+      if (clause) {
+        const names = clause.namedChildren
+          .filter((s) => s.type === 'export_specifier')
+          .map((s) => (s.childForFieldName('name') ?? s).text);
+        if (!names.length) return null;
+        const list = names.join(', ');
+        return source ? `On réexporte ${list} depuis le module ${ctx.t.lit(source)}` : `On expose ${list}`;
+      }
+      let hasStar = false;
+      for (let i = 0; i < node.childCount; i++) if (node.child(i)?.type === '*') hasStar = true;
+      if (hasStar && source) return `On réexporte tout le module ${ctx.t.lit(source)}`;
+      const value = node.childForFieldName('value');
+      if (value) return value.type === 'identifier' ? `On expose ${value.text} par défaut` : 'On expose la valeur par défaut';
+      return null;
+    },
+    doc: {
+      summary: 'export { } / export * / export default : on lit ce qui est exposé.',
+      examples: [
+        { code: 'export { a, b };', subtitle: 'On expose a, b' },
+        { code: "export { x } from './m';", subtitle: 'On réexporte x depuis le module ./m' },
+        { code: "export * from './m';", subtitle: 'On réexporte tout le module ./m' },
+        { code: 'export default config;', subtitle: 'On expose config par défaut' },
+      ],
+    },
+  },
+
+  {
     id: 'js.function-declaration',
     layer: 'idiomatic',
     claims: 'header',

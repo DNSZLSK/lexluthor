@@ -35,7 +35,8 @@ export const compositionalRules: Rule[] = [
     doc: {
       summary: 'Condition if : on lit les appels prédicat/appartenance, littéral sinon.',
       examples: [
-        { code: 'if (count > 0) { go(); }', subtitle: 'Si count > 0 :' },
+        { code: 'if (count > 0) { go(); }', subtitle: 'Si count est supérieur à 0 :' },
+        { code: "if (status === 200) { ok(); }", subtitle: 'Si status vaut 200 :' },
         { code: 'if (list.includes(item)) { use(item); }', subtitle: 'Si la collection contient cet élément :' },
         { code: 'if (user.isValid()) { ok(); }', subtitle: "Si l'utilisateur est valide :" },
         { code: 'if (items.some((x) => x.ok)) { go(); }', subtitle: 'Si au moins un élément correspond :' },

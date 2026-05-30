@@ -69,10 +69,44 @@ function own(dict: Record<string, string>, key: string): string | undefined {
   return Object.hasOwn(dict, key) ? dict[key] : undefined;
 }
 
-/** Lit une condition-appel en français, ou `null` (l'appelant fait alors le littéral fidèle). */
+// Comparaisons -> mots (pas de symbole) : `a === b` se lit « a vaut b ».
+const COMPARISONS: Record<string, string> = {
+  '===': 'vaut',
+  '==': 'vaut',
+  '!==': 'ne vaut pas',
+  '!=': 'ne vaut pas',
+  '<': 'est inférieur à',
+  '>': 'est supérieur à',
+  '<=': 'est inférieur ou égal à',
+  '>=': 'est supérieur ou égal à',
+};
+const OPERAND_TYPES = new Set([
+  'identifier', 'property_identifier', 'member_expression', 'subscript_expression',
+  'string', 'number', 'true', 'false', 'null', 'undefined', 'this',
+]);
+
+/** Texte d'un opérande SIMPLE (nom/accès/littéral court), ou null si c'est du code complexe. */
+function simpleOperand(node: SyntaxNode | null): string | null {
+  if (!node || !OPERAND_TYPES.has(node.type)) return null;
+  const text = node.text;
+  if (text.length > 30 || /[()<>={}]/.test(text) || text.includes('\n')) return null;
+  return text;
+}
+
+/** `a === b` -> « a vaut b » (opérandes simples seulement, sinon null -> littéral). */
+function readComparison(node: SyntaxNode): string | null {
+  const phrase = own(COMPARISONS, node.childForFieldName('operator')?.text ?? '');
+  if (!phrase) return null; // &&, ||, +, … : pas une comparaison
+  const left = simpleOperand(node.childForFieldName('left'));
+  const right = simpleOperand(node.childForFieldName('right'));
+  return left !== null && right !== null ? `${left} ${phrase} ${right}` : null;
+}
+
+/** Lit une condition en français, ou `null` (l'appelant fait alors le littéral fidèle). */
 export function readCondition(raw: SyntaxNode | null | undefined): string | null {
   if (!raw) return null;
   const node = unwrap(raw);
+  if (node.type === 'binary_expression') return readComparison(node);
   if (node.type !== 'call_expression') return null;
   const fn = node.childForFieldName('function');
   if (fn?.type !== 'member_expression') return null;

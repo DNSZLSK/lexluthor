@@ -31,6 +31,10 @@ describe('readCondition : appels prédicat / appartenance', () => {
     ['user.shouldRetry()', "l'utilisateur devrait réessayer"],
     ['claimed.some((c) => f(c))', 'au moins un élément correspond'],
     ['list.every((x) => x.ok)', 'tous les éléments correspondent'],
+    ['status === 200', 'status vaut 200'],
+    ['count > 0', 'count est supérieur à 0'],
+    ['a !== b', 'a ne vaut pas b'],
+    ["node.type === 'x'", "node.type vaut 'x'"],
   ];
   for (const [expr, expected] of reads) {
     it(`${expr} -> ${expected}`, () => {
@@ -39,7 +43,8 @@ describe('readCondition : appels prédicat / appartenance', () => {
   }
 
   const nulls = [
-    'count > 0', // binaire : pas un appel
+    'a && b', // logique, pas une comparaison
+    'foo() === bar()', // opérandes complexes -> littéral fidèle
     'foo()', // appel nu, pas de membre
     'obj.compute()', // verbe ni prédicat ni appartenance
     'cache.get(key)', // get n'est pas un prédicat
