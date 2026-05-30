@@ -64,6 +64,11 @@ function unwrap(node: SyntaxNode): SyntaxNode {
   return node.type === 'parenthesized_expression' ? unwrap(node.namedChildren[0] ?? node) : node;
 }
 
+// Accès « propre » : évite les clés héritées (constructor, toString…) d'un objet littéral.
+function own(dict: Record<string, string>, key: string): string | undefined {
+  return Object.hasOwn(dict, key) ? dict[key] : undefined;
+}
+
 /** Lit une condition-appel en français, ou `null` (l'appelant fait alors le littéral fidèle). */
 export function readCondition(raw: SyntaxNode | null | undefined): string | null {
   if (!raw) return null;
@@ -82,7 +87,8 @@ export function readCondition(raw: SyntaxNode | null | undefined): string | null
     return `la collection contient ${what}`;
   }
   // Prédicat de collection : claimed.some(c => …) -> « au moins un élément correspond ».
-  if (ARRAY_PREDICATE[method]) return ARRAY_PREDICATE[method]!;
+  const arrayPred = own(ARRAY_PREDICATE, method);
+  if (arrayPred) return arrayPred;
 
   const words = splitIdentifier(method);
   const head = words[0];
@@ -92,14 +98,14 @@ export function readCondition(raw: SyntaxNode | null | undefined): string | null
 
   // is{Adj} -> « … est valide » (adjectif curé, sinon littéral).
   if (head === 'is') {
-    const adj = ADJECTIVES[rest.join('')] ?? ADJECTIVES[rest[rest.length - 1]!];
+    const adj = own(ADJECTIVES, rest.join('')) ?? own(ADJECTIVES, rest[rest.length - 1]!);
     return adj ? `${subj} est ${adj}` : null;
   }
   // has{Noun} -> « … a une erreur ».
   if (head === 'has') return `${subj} a ${nounPhrase(rest, 'un')}`;
   // can{Verb} / should{Verb} -> « … peut modifier » (infinitif curé, sinon littéral).
   if (head === 'can' || head === 'should') {
-    const inf = INFINITIVES[rest.join('')] ?? INFINITIVES[rest[rest.length - 1]!];
+    const inf = own(INFINITIVES, rest.join('')) ?? own(INFINITIVES, rest[rest.length - 1]!);
     return inf ? `${subj} ${head === 'should' ? 'devrait' : 'peut'} ${inf}` : null;
   }
   return null;

@@ -86,6 +86,11 @@ function classify(node: SyntaxNode, subs: readonly Subtitle[]): { coverage: Cove
   return { coverage: 'rich', ruleId: best.ruleId };
 }
 
+// Carte sans prototype : une clé comme « constructor »/« toString » n'hérite de rien.
+function dict<T>(): Record<string, T> {
+  return Object.create(null) as Record<string, T>;
+}
+
 function bump(map: Record<string, number>, key: string): void {
   map[key] = (map[key] ?? 0) + 1;
 }
@@ -156,10 +161,10 @@ export function analyzeCoverage(adapter: LanguageAdapter, engine: SubtitleEngine
     statements: 0,
     parseErrors: 0,
     counts: { rich: 0, shape: 0, recopied: 0, silent: 0 },
-    unknownWords: {},
-    missingVerbs: {},
-    uncoveredTypes: {},
-    recopied: {},
+    unknownWords: dict(),
+    missingVerbs: dict(),
+    uncoveredTypes: dict(),
+    recopied: dict(),
   };
 
   const stack: SyntaxNode[] = [root];
@@ -196,11 +201,11 @@ export function emptyRepoReport(): RepoReport {
     statements: 0,
     parseErrors: 0,
     counts: { rich: 0, shape: 0, recopied: 0, silent: 0 },
-    byLang: {},
-    unknownWords: {},
-    missingVerbs: {},
-    uncoveredTypes: {},
-    recopied: {},
+    byLang: dict(),
+    unknownWords: dict(),
+    missingVerbs: dict(),
+    uncoveredTypes: dict(),
+    recopied: dict(),
   };
 }
 

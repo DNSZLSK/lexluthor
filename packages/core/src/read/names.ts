@@ -107,7 +107,42 @@ const GLOSSARY: Record<string, Noun> = {
   header: { fr: 'en-tête', g: 'm' },
   param: { fr: 'paramètre', g: 'm' },
   params: { fr: 'paramètres', g: 'm', pl: 'paramètres' },
+  // Curation r1 : termes remontés par `lexluthor scan` sur les repos locaux (par fréquence).
+  source: { fr: 'source', g: 'f' },
+  target: { fr: 'cible', g: 'f' },
+  content: { fr: 'contenu', g: 'm' },
+  input: { fr: 'entrée', g: 'f' },
+  output: { fr: 'sortie', g: 'f' },
+  method: { fr: 'méthode', g: 'f' },
+  expression: { fr: 'expression', g: 'f' },
+  package: { fr: 'paquet', g: 'm' },
+  class: { fr: 'classe', g: 'f' },
+  base: { fr: 'base', g: 'f' },
+  prop: { fr: 'propriété', g: 'f' },
+  props: { fr: 'propriétés', g: 'f', pl: 'propriétés' },
+  property: { fr: 'propriété', g: 'f' },
+  ref: { fr: 'référence', g: 'f' },
+  reference: { fr: 'référence', g: 'f' },
+  obj: { fr: 'objet', g: 'm' },
+  call: { fr: 'appel', g: 'm' },
+  threat: { fr: 'menace', g: 'f' },
+  word: { fr: 'mot', g: 'm' },
+  arg: { fr: 'argument', g: 'm' },
+  argument: { fr: 'argument', g: 'm' },
+  report: { fr: 'rapport', g: 'm' },
+  subject: { fr: 'sujet', g: 'm' },
+  model: { fr: 'modèle', g: 'm' },
+  view: { fr: 'vue', g: 'f' },
+  service: { fr: 'service', g: 'm' },
+  module: { fr: 'module', g: 'm' },
+  event: { fr: 'évènement', g: 'm' },
 };
+
+// Accès « propre » à un dictionnaire littéral : évite les clés HÉRITÉES (constructor,
+// toString, hasOwnProperty…) qui renverraient une fonction d'Object.prototype.
+function own<T>(dict: Record<string, T>, key: string): T | undefined {
+  return Object.hasOwn(dict, key) ? dict[key] : undefined;
+}
 
 function singularize(word: string): { sing: string; plural: boolean } {
   if (word.length > 3 && word.endsWith('ies')) return { sing: `${word.slice(0, -3)}y`, plural: true };
@@ -117,10 +152,10 @@ function singularize(word: string): { sing: string; plural: boolean } {
 }
 
 function lookup(word: string): { noun: Noun; plural: boolean } {
-  const direct = GLOSSARY[word];
+  const direct = own(GLOSSARY, word);
   if (direct) return { noun: direct, plural: false };
   const { sing, plural } = singularize(word);
-  const entry = GLOSSARY[sing];
+  const entry = own(GLOSSARY, sing);
   if (entry) return { noun: entry, plural };
   // Inconnu : on garde le mot tel quel (lisible quand même), masculin par défaut.
   return { noun: { fr: word, g: 'm' }, plural };
@@ -187,7 +222,7 @@ export function isGlossed(id: string): boolean {
   const words = splitIdentifier(id);
   if (words.length === 0) return false;
   const w = words[words.length - 1]!;
-  return Boolean(GLOSSARY[w] ?? GLOSSARY[singularize(w).sing]);
+  return Boolean(own(GLOSSARY, w) ?? own(GLOSSARY, singularize(w).sing));
 }
 
 /** Forme « aucun/aucune {nom} » accordée. Ex : factory -> « aucune fabrique » ; adapter -> « aucun adapter ». */
@@ -254,6 +289,20 @@ const VERB_PREFIXES: Record<string, (rest: string[]) => string> = {
   merge: (r) => `fusionne ${nounPhrase(r, 'le')}`,
   copy: (r) => `copie ${nounPhrase(r, 'le')}`,
   move: (r) => `déplace ${nounPhrase(r, 'le')}`,
+  // Curation r1 : verbes remontés par `lexluthor scan` (par fréquence).
+  normalize: (r) => `normalise ${nounPhrase(r, 'le')}`,
+  generate: (r) => `génère ${nounPhrase(r, 'un')}`,
+  extract: (r) => `extrait ${nounPhrase(r, 'le')}`,
+  setup: (r) => `prépare ${nounPhrase(r, 'le')}`,
+  reset: (r) => `réinitialise ${nounPhrase(r, 'le')}`,
+  collect: (r) => `rassemble ${nounPhrase(r, 'le')}`,
+  classify: (r) => `classe ${nounPhrase(r, 'le')}`,
+  analyze: (r) => `analyse ${nounPhrase(r, 'le')}`,
+  dispatch: (r) => `distribue ${nounPhrase(r, 'le')}`,
+  register: (r) => `enregistre ${nounPhrase(r, 'le')}`,
+  convert: (r) => `convertit ${nounPhrase(r, 'le')}`,
+  wrap: (r) => `enveloppe ${nounPhrase(r, 'le')}`,
+  unwrap: (r) => `déballe ${nounPhrase(r, 'le')}`,
 };
 
 function elideQue(s: string): string {
@@ -264,7 +313,7 @@ function elideQue(s: string): string {
 export function readVerbName(id: string): string | null {
   const words = splitIdentifier(id);
   if (words.length === 0) return null;
-  const verb = VERB_PREFIXES[words[0]!];
+  const verb = own(VERB_PREFIXES, words[0]!);
   if (verb) {
     let rest = words.slice(1);
     const byIdx = rest.indexOf('by'); // getUserById -> "récupère l'utilisateur"

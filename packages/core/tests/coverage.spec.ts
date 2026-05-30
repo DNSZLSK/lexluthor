@@ -46,7 +46,7 @@ describe('analyzeCoverage : cibles de curation', () => {
   });
 
   it('const = fonction fléchée sans verbe -> missingVerbs', () => {
-    expect(report('const dispatchThing = () => 1;').missingVerbs['dispatch']).toBe(1);
+    expect(report('const frobnicateThing = () => 1;').missingVerbs['frobnicate']).toBe(1);
   });
 
   it('mots non glosés -> unknownWords', () => {

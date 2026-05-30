@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { humanizeName, nounPhrase, readVerbName, splitIdentifier } from '../src/read/names';
+import { humanizeName, isGlossed, nounPhrase, readVerbName, splitIdentifier } from '../src/read/names';
 
 describe('splitIdentifier', () => {
   it('découpe les conventions de nommage', () => {
@@ -43,5 +43,11 @@ describe('readVerbName (préfixes verbes)', () => {
   it('null si aucun préfixe verbe connu', () => {
     expect(readVerbName('subtitle')).toBeNull();
     expect(readVerbName('factory')).toBeNull();
+  });
+
+  it('clés héritées (constructor/toString) ne cassent pas les lookups', () => {
+    expect(readVerbName('constructor')).toBeNull(); // pas Object.prototype.constructor
+    expect(isGlossed('constructor')).toBe(false);
+    expect(typeof humanizeName('constructor')).toBe('string');
   });
 });

@@ -54,7 +54,7 @@ export const lexicalRules: Rule[] = [
         { code: 'const language = await provider.loadGrammar(lang);', subtitle: 'On charge la grammaire pour ce langage' },
         { code: 'const port = 3000;', subtitle: 'On définit le port à 3000' },
         { code: 'const { name, email } = req.body;', subtitle: "On récupère name, email d'un objet" },
-        { code: "const apostropheBase = cond ? 'd' : 'l';", subtitle: 'On définit apostropheBase selon une condition' },
+        { code: "const apostropheBase = cond ? 'd' : 'l';", subtitle: "On définit la base d'apostrophe selon une condition" },
         { code: 'const count = base * 2;', subtitle: 'On calcule le nombre' },
         { code: 'const ok = a === b;', subtitle: 'On définit ok par une comparaison' },
         { code: 'const msg = `Total: ${n}`;', subtitle: 'On compose le message' },
