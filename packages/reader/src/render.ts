@@ -12,6 +12,7 @@ export function renderPlayer(container: HTMLElement, rows: readonly RenderRow[])
 
     if (row.kind === 'code') {
       line.className = 'row row--code';
+      line.dataset.codeLine = String(row.lineNumber); // ancrage pour la synchro de scroll (webview)
       const gutter = document.createElement('span');
       gutter.className = 'gutter';
       gutter.textContent = String(row.lineNumber);

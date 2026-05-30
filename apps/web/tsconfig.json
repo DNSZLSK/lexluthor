@@ -3,7 +3,8 @@
   "compilerOptions": {
     "types": ["node"],
     "paths": {
-      "@lexluthor/core": ["../../packages/core/src/index.ts"]
+      "@lexluthor/core": ["../../packages/core/src/index.ts"],
+      "@lexluthor/reader": ["../../packages/reader/src/index.ts"]
     }
   },
   "include": ["src", "vite.config.ts"]

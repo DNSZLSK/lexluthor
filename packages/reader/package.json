@@ -1,0 +1,20 @@
+{
+  "name": "@lexluthor/reader",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Rendu VOSTFR partagé (Shiki + interleave + sous-titres ambre sous le code). Navigateur, réutilisé par la webapp et le webview de l'extension.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@lexluthor/core": "*",
+    "@shikijs/langs": "4.1.0",
+    "@shikijs/themes": "4.1.0",
+    "shiki": "4.1.0"
+  }
+}

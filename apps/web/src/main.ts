@@ -1,13 +1,9 @@
-import './styles/theme.css';
-import './styles/player.css';
-
+import { createReaderHighlighter, interleave, renderPlayer } from '@lexluthor/reader';
 import { createSubtitler, samples } from '@lexluthor/core';
 import type { LangId } from '@lexluthor/core';
 import { webWasmProvider } from './adapters/loader';
-import { tokenizeLines } from './ui/highlighter';
-import { interleave } from './ui/interleave';
-import { renderPlayer } from './ui/render';
 
+const highlighter = createReaderHighlighter({ onig: import('shiki/wasm') });
 const subtitler = createSubtitler(webWasmProvider);
 
 const $code = document.querySelector<HTMLTextAreaElement>('#code')!;
@@ -30,7 +26,7 @@ async function update(): Promise<void> {
 
   $status.textContent = '…';
   try {
-    const [lines, subs] = await Promise.all([tokenizeLines(code, lang), subtitler.subtitle(code, lang)]);
+    const [lines, subs] = await Promise.all([highlighter.tokenizeLines(code, lang), subtitler.subtitle(code, lang)]);
     if (seq !== renderSeq) return; // un rendu plus récent a pris la main
     renderPlayer($player, interleave(lines, subs));
     $status.textContent = `${subs.length} sous-titre${subs.length > 1 ? 's' : ''}`;

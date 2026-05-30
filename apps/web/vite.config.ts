@@ -8,9 +8,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@lexluthor/core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
+      '@lexluthor/reader': fileURLToPath(new URL('../../packages/reader/src/index.ts', import.meta.url)),
     },
   },
   build: { target: 'es2022' },
-  optimizeDeps: { exclude: ['web-tree-sitter', '@lexluthor/core'] },
+  optimizeDeps: { exclude: ['web-tree-sitter', '@lexluthor/core', '@lexluthor/reader'] },
   worker: { format: 'es' },
 });

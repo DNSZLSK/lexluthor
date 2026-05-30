@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { interleave } from '../src/ui/interleave';
+import { interleave } from '@lexluthor/reader';
 import type { Subtitle } from '@lexluthor/core';
-import type { Token } from '../src/ui/tokens';
+import type { Token } from '@lexluthor/reader';
 
 function line(text: string): Token[] {
   return [{ content: text }];

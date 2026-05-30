@@ -12,8 +12,7 @@
   },
   "dependencies": {
     "@lexluthor/core": "*",
-    "@shikijs/langs": "4.1.0",
-    "@shikijs/themes": "4.1.0",
+    "@lexluthor/reader": "*",
     "shiki": "4.1.0",
     "web-tree-sitter": "0.26.9"
   },
