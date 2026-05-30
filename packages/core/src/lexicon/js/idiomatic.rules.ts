@@ -89,6 +89,7 @@ export const idiomaticRules: Rule[] = [
       examples: [
         { code: 'function ensureAdapter(lang) { return a; }', subtitle: "On s'assure qu'un adapter existe" },
         { code: 'function loadGrammar(lang) { return g; }', subtitle: 'On charge la grammaire' },
+        { code: 'function claimOf(rule) { return c; }', subtitle: 'On détermine la revendication' },
         { code: 'function frobnicate() {}', subtitle: 'On définit la fonction frobnicate' },
       ],
     },

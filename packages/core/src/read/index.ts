@@ -9,3 +9,5 @@ export {
   readVerbName,
 } from './names';
 export { readExpr } from './expr';
+export { valueShape, shapePhrase, type ValueShape, type Frame } from './values';
+export { readCondition } from './conditions';

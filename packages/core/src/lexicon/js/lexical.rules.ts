@@ -1,12 +1,22 @@
 // Couche LEXICALE : déclarations, affectations, return, throw.
 // Ces règles LISENT l'intention (via read/) au lieu de paraphraser la syntaxe.
-import type { Rule } from '../../engine/types';
-import { demonstrative, humanizeName, isGlossed, readExpr } from '../../read';
+import type { Interpolator, Rule, SyntaxNode } from '../../engine/types';
+import { demonstrative, humanizeName, isGlossed, readExpr, shapePhrase, valueShape } from '../../read';
 import { patternNames } from './_helpers';
 
 /** Sujet lisible d'un identifiant : groupe nominal si le nom est « connu », sinon le nom brut. */
 function subject(id: string): string {
   return isGlossed(id) ? humanizeName(id, 'le') : id;
+}
+
+/** Complément nominal d'une valeur affectée (objet d'« enregistre … »). Jamais de code complexe recopié. */
+function valueComplement(node: SyntaxNode, t: Interpolator): string {
+  if (node.type === 'identifier') return humanizeName(node.text, 'le');
+  const shape = valueShape(node);
+  if (shape === 'literal' || shape === 'member') return t.truncate(node.text, 30);
+  if (shape === 'object') return 'un objet';
+  if (shape === 'array') return 'une liste';
+  return 'une valeur'; // ternaire / calcul / comparaison… : nom générique, pas de dump
 }
 
 export const lexicalRules: Rule[] = [
@@ -32,20 +42,22 @@ export const lexicalRules: Rule[] = [
         // le nom de la variable comme objet possible pour les verbes nus.
         const read = readExpr(value, nameNode.text);
         if (read) return `On ${read}`;
-        // Littéral objet/tableau : on nomme la chose, sans dumper son contenu.
-        if (value.type === 'object' || value.type === 'array') return `On définit ${subject(nameNode.text)}`;
-        // Sinon : littéral fidèle, nom-aware (jamais inventer).
-        return `On définit ${subject(nameNode.text)} à ${ctx.t.truncate(ctx.text(value), 40)}`;
+        // Sinon : phrase de FORME (objet, ternaire, calcul, template…), jamais le code brut.
+        return shapePhrase(value, 'define', subject(nameNode.text));
       }
       return `On déclare ${subject(nameNode.text)}`;
     },
     doc: {
-      summary: 'Déclaration const/let : on lit la valeur, pas la syntaxe.',
+      summary: 'Déclaration const/let : on lit la valeur, sinon phrase de forme.',
       examples: [
         { code: 'const factory = ADAPTER_FACTORIES[lang];', subtitle: 'On récupère la fabrique d\'adapter pour ce langage' },
         { code: 'const language = await provider.loadGrammar(lang);', subtitle: 'On charge la grammaire pour ce langage' },
         { code: 'const port = 3000;', subtitle: 'On définit le port à 3000' },
         { code: 'const { name, email } = req.body;', subtitle: "On récupère name, email d'un objet" },
+        { code: "const apostropheBase = cond ? 'd' : 'l';", subtitle: 'On définit apostropheBase selon une condition' },
+        { code: 'const count = base * 2;', subtitle: 'On calcule le nombre' },
+        { code: 'const ok = a === b;', subtitle: 'On définit ok par une comparaison' },
+        { code: 'const msg = `Total: ${n}`;', subtitle: 'On compose le message' },
       ],
     },
   },
@@ -58,28 +70,36 @@ export const lexicalRules: Rule[] = [
       const left = ctx.node.childForFieldName('left');
       const right = ctx.node.childForFieldName('right');
       if (!left || !right) return null;
-      const val = right.type === 'identifier' ? humanizeName(right.text, 'le') : ctx.t.truncate(ctx.text(right), 30);
 
       if (left.type === 'subscript_expression') {
         const obj = left.childForFieldName('object');
         const index = left.childForFieldName('index');
         const isCache = obj ? /cache|map|store|registry|adapters|byId|index/i.test(obj.text) : false;
-        let phrase = isCache ? `met ${val} en cache` : `enregistre ${val}`;
+        let phrase = isCache ? `met ${valueComplement(right, ctx.t)} en cache` : `enregistre ${valueComplement(right, ctx.t)}`;
         if (index?.type === 'identifier') phrase += ` pour ${demonstrative(index.text)}`;
         return `On ${phrase}`;
       }
       if (left.type === 'member_expression') {
         const prop = left.childForFieldName('property');
         const obj = left.childForFieldName('object');
-        if (prop && obj) return `On définit ${humanizeName(prop.text, 'le')} de ${humanizeName(obj.text, 'none')} à ${val}`;
+        if (prop && obj) {
+          return `On définit ${humanizeName(prop.text, 'le')} de ${humanizeName(obj.text, 'none')} à ${valueComplement(right, ctx.t)}`;
+        }
       }
-      if (left.type === 'identifier') return `On définit ${subject(left.text)} à ${val}`;
+      if (left.type === 'identifier') {
+        // Réaffectation : on lit la valeur (appel/lookup), sinon phrase de forme.
+        const read = readExpr(right, left.text);
+        if (read) return `On ${read}`;
+        return shapePhrase(right, 'define', subject(left.text));
+      }
       return null;
     },
     doc: {
       summary: 'Affectation : écriture dans une collection / un champ.',
       examples: [
         { code: 'adapters[lang] = adapter;', subtitle: "On met l'adapter en cache pour ce langage" },
+        { code: 'obj[key] = a ? b : c;', subtitle: 'On enregistre une valeur pour cette clé' },
+        { code: 'count = count + 1;', subtitle: 'On calcule le nombre' },
       ],
     },
   },
@@ -119,17 +139,20 @@ export const lexicalRules: Rule[] = [
     render(ctx) {
       const value = ctx.node.namedChildren[0];
       if (!value) return 'On sort de la fonction';
-      if (value.type === 'object') return 'On renvoie un objet';
-      if (value.type === 'array') return 'On renvoie une liste';
       if (value.type === 'identifier') return `On renvoie ${subject(value.text)}`;
-      return `On renvoie ${ctx.t.truncate(ctx.text(value), 70)}`; // littéral fidèle (truncate aplatit)
+      // Phrase de FORME (objet, ternaire, calcul, template…) : jamais le code brut.
+      return shapePhrase(value, 'return');
     },
     doc: {
-      summary: 'Instruction return : on nomme objet/liste, on lit le sujet.',
+      summary: 'Instruction return : sujet lisible, sinon phrase de forme.',
       examples: [
         { code: 'function f() { return total; }', subtitle: 'On renvoie total' },
         { code: 'function f() { return adapter; }', subtitle: "On renvoie l'adapter" },
         { code: 'function f() { return { id, name }; }', subtitle: 'On renvoie un objet' },
+        { code: 'function f() { return a ? b : c; }', subtitle: 'On renvoie une valeur selon une condition' },
+        { code: 'function f() { return cache ?? fallback; }', subtitle: 'On renvoie une valeur ou sa valeur par défaut' },
+        { code: 'function f() { return a - b; }', subtitle: "On renvoie le résultat d'un calcul" },
+        { code: 'function f() { return a === b; }', subtitle: "On renvoie le résultat d'une comparaison" },
         { code: 'function f() { return; }', subtitle: 'On sort de la fonction' },
       ],
     },
@@ -141,14 +164,18 @@ export const lexicalRules: Rule[] = [
     query: '(throw_statement) @site',
     render(ctx) {
       const value = ctx.node.namedChildren[0];
-      return `On déclenche une erreur : ${ctx.t.truncate(ctx.text(value), 60)}`;
+      if (!value) return 'On déclenche une erreur';
+      // Court -> on montre l'erreur ; long/complexe -> générique, jamais de code recopié.
+      const raw = ctx.text(value).replace(/\s+/g, ' ').trim();
+      return raw.length <= 48 ? `On déclenche une erreur : ${raw}` : 'On déclenche une erreur';
     },
     doc: {
-      summary: 'Instruction throw.',
+      summary: 'Instruction throw : erreur courte montrée, sinon générique.',
       examples: [
+        { code: "function f() { throw new Error('boom'); }", subtitle: "On déclenche une erreur : new Error('boom')" },
         {
-          code: "function f() { throw new Error('boom'); }",
-          subtitle: "On déclenche une erreur : new Error('boom')",
+          code: 'function f() { throw new Error(`Unsupported language ${lang} with a very long detail`); }',
+          subtitle: 'On déclenche une erreur',
         },
       ],
     },

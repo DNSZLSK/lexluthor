@@ -2,7 +2,7 @@
 // EN-TETE ('header') -> les instructions du corps re-rentrent dans le matching
 // et recoivent leurs propres sous-titres (on lit la structure ET son contenu).
 import type { Rule } from '../../engine/types';
-import { isGlossed, noneOf } from '../../read';
+import { isGlossed, noneOf, readCondition } from '../../read';
 
 export const compositionalRules: Rule[] = [
   {
@@ -31,10 +31,15 @@ export const compositionalRules: Rule[] = [
     layer: 'compositional',
     claims: 'header',
     query: '(if_statement condition: (parenthesized_expression (_) @cond)) @site',
-    render: (ctx) => `Si ${ctx.t.truncate(ctx.text(ctx.caps.cond), 50)} :`,
+    render: (ctx) => `Si ${readCondition(ctx.caps.cond) ?? ctx.t.truncate(ctx.text(ctx.caps.cond), 50)} :`,
     doc: {
-      summary: 'Condition if generique.',
-      examples: [{ code: 'if (count > 0) { go(); }', subtitle: 'Si count > 0 :' }],
+      summary: 'Condition if : on lit les appels prédicat/appartenance, littéral sinon.',
+      examples: [
+        { code: 'if (count > 0) { go(); }', subtitle: 'Si count > 0 :' },
+        { code: 'if (list.includes(item)) { use(item); }', subtitle: 'Si la collection contient cet élément :' },
+        { code: 'if (user.isValid()) { ok(); }', subtitle: "Si l'utilisateur est valide :" },
+        { code: 'if (items.some((x) => x.ok)) { go(); }', subtitle: 'Si au moins un élément correspond :' },
+      ],
     },
   },
 
@@ -81,10 +86,13 @@ export const compositionalRules: Rule[] = [
     layer: 'compositional',
     claims: 'header',
     query: '(while_statement condition: (parenthesized_expression (_) @cond)) @site',
-    render: (ctx) => `Tant que ${ctx.t.truncate(ctx.text(ctx.caps.cond), 50)} :`,
+    render: (ctx) => `Tant que ${readCondition(ctx.caps.cond) ?? ctx.t.truncate(ctx.text(ctx.caps.cond), 50)} :`,
     doc: {
-      summary: 'Boucle while.',
-      examples: [{ code: 'while (running) { tick(); }', subtitle: 'Tant que running :' }],
+      summary: 'Boucle while : on lit les appels prédicat/appartenance, littéral sinon.',
+      examples: [
+        { code: 'while (running) { tick(); }', subtitle: 'Tant que running :' },
+        { code: 'while (queue.has(next)) { step(); }', subtitle: 'Tant que la collection contient cet élément :' },
+      ],
     },
   },
 
@@ -119,7 +127,7 @@ export const compositionalRules: Rule[] = [
     id: 'js.switch',
     layer: 'compositional',
     query: '(switch_statement value: (parenthesized_expression (_) @disc)) @site',
-    render: (ctx) => `Selon ${ctx.t.truncate(ctx.text(ctx.caps.disc), 40)} :`,
+    render: (ctx) => `Selon ${readCondition(ctx.caps.disc) ?? ctx.t.truncate(ctx.text(ctx.caps.disc), 40)} :`,
     doc: {
       summary: 'Aiguillage switch.',
       examples: [{ code: 'switch (status) { case 200: ok(); break; }', subtitle: 'Selon status :' }],

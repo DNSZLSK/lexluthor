@@ -62,6 +62,10 @@ const GLOSSARY: Record<string, Noun> = {
   node: { fr: 'nœud', g: 'm' },
   tree: { fr: 'arbre', g: 'm' },
   block: { fr: 'bloc', g: 'm' },
+  claim: { fr: 'revendication', g: 'f' },
+  depth: { fr: 'profondeur', g: 'f' },
+  spec: { fr: 'spécificité', g: 'f' },
+  specificity: { fr: 'spécificité', g: 'f' },
   subtitle: { fr: 'sous-titre', g: 'm' },
   subtitler: { fr: 'sous-titreur', g: 'm' },
   highlighter: { fr: 'coloriseur', g: 'm' },
@@ -261,9 +265,15 @@ export function readVerbName(id: string): string | null {
   const words = splitIdentifier(id);
   if (words.length === 0) return null;
   const verb = VERB_PREFIXES[words[0]!];
-  if (!verb) return null;
-  let rest = words.slice(1);
-  const byIdx = rest.indexOf('by'); // getUserById -> "récupérer l'utilisateur"
-  if (byIdx >= 0) rest = rest.slice(0, byIdx);
-  return verb(rest).trim();
+  if (verb) {
+    let rest = words.slice(1);
+    const byIdx = rest.indexOf('by'); // getUserById -> "récupère l'utilisateur"
+    if (byIdx >= 0) rest = rest.slice(0, byIdx);
+    return verb(rest).trim();
+  }
+  // Convention *Of : claimOf/rangeOf/specOf = « obtenir le X de … » -> « détermine {X} ».
+  if (words.length >= 2 && words[words.length - 1] === 'of') {
+    return `détermine ${nounPhrase(words.slice(0, -1), 'le')}`;
+  }
+  return null;
 }

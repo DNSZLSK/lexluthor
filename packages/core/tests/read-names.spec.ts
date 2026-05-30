@@ -34,6 +34,12 @@ describe('readVerbName (préfixes verbes)', () => {
     expect(readVerbName('saveFile')).toBe('enregistre le fichier');
   });
 
+  it('convention *Of (obtenir le X de …) -> « détermine {X} »', () => {
+    expect(readVerbName('claimOf')).toBe('détermine la revendication');
+    expect(readVerbName('rangeOf')).toBe('détermine la plage');
+    expect(readVerbName('depthOf')).toBe('détermine la profondeur');
+  });
+
   it('null si aucun préfixe verbe connu', () => {
     expect(readVerbName('subtitle')).toBeNull();
     expect(readVerbName('factory')).toBeNull();
