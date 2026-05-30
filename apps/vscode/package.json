@@ -20,8 +20,7 @@
   "contributes": {
     "commands": [
       { "command": "lexluthor.toggle", "title": "LexLuthor : activer/désactiver les sous-titres", "category": "LexLuthor" },
-      { "command": "lexluthor.cycleDensity", "title": "LexLuthor : changer la densité des sous-titres", "category": "LexLuthor" },
-      { "command": "lexluthor.cycleRenderStyle", "title": "LexLuthor : basculer cinéma / fin de ligne", "category": "LexLuthor" }
+      { "command": "lexluthor.cycleDensity", "title": "LexLuthor : changer la densité des sous-titres", "category": "LexLuthor" }
     ],
     "configuration": {
       "title": "LexLuthor",
@@ -30,16 +29,6 @@
           "type": "boolean",
           "default": true,
           "description": "Affiche les sous-titres automatiquement (toujours actif)."
-        },
-        "lexluthor.renderStyle": {
-          "type": "string",
-          "enum": ["inline", "cinema"],
-          "enumDescriptions": [
-            "Annotation grisée en fin de ligne (fiable, façon GitLens).",
-            "EXPÉRIMENTAL : sous-titre sous la ligne (hack CSS, peut mal s'afficher selon la version de VS Code)."
-          ],
-          "default": "inline",
-          "description": "Style de rendu des sous-titres. 'cinema' tente l'affichage sous la ligne (expérimental)."
         },
         "lexluthor.humanLanguage": {
           "type": "string",

@@ -19,7 +19,7 @@ Installe, ouvre un fichier `.js` / `.ts`. C'est tout. Une pastille **VOSTFR** ap
 
 ### Réglages (`lexluthor.*`)
 
-- **`renderStyle`** : `inline` (défaut, fiable : annotation en fin de ligne façon GitLens) ou `cinema` (**expérimental** : tente d'afficher le sous-titre *sous* la ligne). Commande : « LexLuthor : basculer cinéma / fin de ligne ».
+- Les sous-titres s'affichent en **fin de ligne** (grisés, façon GitLens) ; les alertes sécu en rouge dans *Problèmes*. (Le format « sous la ligne » n'est pas possible dans VS Code : Monaco ne réalloue pas la hauteur de ligne. La webapp, elle, le fait.)
 - **`density`** : `all` / `idiomatic` (défaut) / `headers`. Combien de sous-titres afficher (anti-encombrement).
 - **`languages`** : langages où les sous-titres s'affichent (défaut : JS/JSX/TS).
 - **`security.enabled`** : alertes rouges des patterns sensibles.

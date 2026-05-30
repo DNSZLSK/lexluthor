@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import type { Subtitle } from '@lexluthor/core';
 import { SubtitlerService } from './subtitler-service';
-import { createDecorationTypes, type DecoTypes, type RenderStyle } from './decorations';
+import { createDecorationTypes, type DecoTypes } from './decorations';
 import { buildDiagnostics } from './diagnostics';
 
 const LAYERS_BY_DENSITY: Record<string, ReadonlySet<string>> = {
@@ -21,8 +21,7 @@ const SCROLL_DEBOUNCE = 60;
  * que re-filtrer le cache.
  */
 export class RenderController implements vscode.Disposable {
-  private decoTypes: DecoTypes;
-  private style: RenderStyle;
+  private readonly decoTypes: DecoTypes;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
   private errorShown = false;
@@ -31,8 +30,7 @@ export class RenderController implements vscode.Disposable {
     private readonly service: SubtitlerService,
     private readonly diagnostics: vscode.DiagnosticCollection,
   ) {
-    this.style = this.cfg().get<RenderStyle>('renderStyle', 'inline');
-    this.decoTypes = createDecorationTypes(this.style);
+    this.decoTypes = createDecorationTypes();
 
     this.disposables.push(
       vscode.window.onDidChangeActiveTextEditor((ed) => {
@@ -74,12 +72,6 @@ export class RenderController implements vscode.Disposable {
   }
 
   onConfigChanged(): void {
-    const nextStyle = this.cfg().get<RenderStyle>('renderStyle', 'inline');
-    if (nextStyle !== this.style) {
-      this.decoTypes.dispose();
-      this.style = nextStyle;
-      this.decoTypes = createDecorationTypes(this.style);
-    }
     this.refreshAll();
   }
 

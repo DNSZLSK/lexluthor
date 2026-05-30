@@ -1,7 +1,5 @@
 import * as vscode from 'vscode';
 
-export type RenderStyle = 'inline' | 'cinema';
-
 export interface DecoTypes {
   readonly normal: vscode.TextEditorDecorationType;
   readonly alert: vscode.TextEditorDecorationType;
@@ -9,29 +7,23 @@ export interface DecoTypes {
 }
 
 /**
- * Crée les types de décoration selon le style.
- *  - 'inline' (fiable) : annotation grisée/italique en FIN de ligne (façon GitLens).
- *  - 'cinema' (EXPÉRIMENTAL) : tente de pousser le texte SOUS la ligne via une
- *    injection CSS dans `textDecoration` (non entièrement sanitize par VS Code).
- *    Peut s'afficher imparfaitement selon la version — d'où le réglage pour revenir
- *    à 'inline'. Le contenu (contentText) est fourni par range dans le contrôleur.
+ * Décorations de fin de ligne (façon GitLens) : annotation grisée/italique pour les
+ * sous-titres, rouge/gras pour les alertes. Le contenu (contentText) est fourni par
+ * range dans le contrôleur.
+ *
+ * NB : le format « cinéma » (sous-titre SOUS la ligne) a été retiré — verdict du
+ * spike B0 : Monaco ne réalloue pas la hauteur de ligne pour un pseudo-élément CSS,
+ * donc le texte chevauche la ligne suivante. Inline est le rendu définitif de
+ * l'extension ; la webapp garde le look cinéma.
  */
-export function createDecorationTypes(style: RenderStyle): DecoTypes {
-  const cinemaCss = 'none; display: block; margin: 1px 0 0 0; opacity: 0.9;';
-
+export function createDecorationTypes(): DecoTypes {
   const normal = vscode.window.createTextEditorDecorationType({
-    after:
-      style === 'cinema'
-        ? { color: new vscode.ThemeColor('descriptionForeground'), fontStyle: 'italic', textDecoration: cinemaCss }
-        : { color: new vscode.ThemeColor('descriptionForeground'), fontStyle: 'italic', margin: '0 0 0 2em' },
+    after: { color: new vscode.ThemeColor('descriptionForeground'), fontStyle: 'italic', margin: '0 0 0 2em' },
     rangeBehavior: vscode.DecorationRangeBehavior.ClosedOpen,
   });
 
   const alert = vscode.window.createTextEditorDecorationType({
-    after:
-      style === 'cinema'
-        ? { color: new vscode.ThemeColor('errorForeground'), fontWeight: 'bold', textDecoration: cinemaCss }
-        : { color: new vscode.ThemeColor('errorForeground'), fontWeight: 'bold', margin: '0 0 0 2em' },
+    after: { color: new vscode.ThemeColor('errorForeground'), fontWeight: 'bold', margin: '0 0 0 2em' },
     rangeBehavior: vscode.DecorationRangeBehavior.ClosedOpen,
   });
 

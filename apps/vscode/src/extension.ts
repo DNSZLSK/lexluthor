@@ -4,7 +4,6 @@ import { RenderController } from './render-controller';
 import { createStatusBar, updateStatusBar } from './status-bar';
 
 const DENSITIES = ['all', 'idiomatic', 'headers'] as const;
-const STYLES = ['inline', 'cinema'] as const;
 
 export function activate(context: vscode.ExtensionContext): void {
   const diagnostics = vscode.languages.createDiagnosticCollection('lexluthor');
@@ -32,7 +31,6 @@ export function activate(context: vscode.ExtensionContext): void {
       updateStatusBar(status, next);
     }),
     vscode.commands.registerCommand('lexluthor.cycleDensity', () => cycle('density', DENSITIES, 'idiomatic')),
-    vscode.commands.registerCommand('lexluthor.cycleRenderStyle', () => cycle('renderStyle', STYLES, 'inline')),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (!e.affectsConfiguration('lexluthor')) return;
       updateStatusBar(status, cfg().get('enabled', true));
