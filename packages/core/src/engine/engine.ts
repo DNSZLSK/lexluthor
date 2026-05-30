@@ -75,19 +75,19 @@ function makeContext(
  *  Un render() qui renvoie null = la regle renonce (on ne devine jamais).
  */
 export function createEngine(adapters: Partial<Record<LangId, LanguageAdapter>>): SubtitleEngine {
-  const queryCache = new Map<string, Query>();
+  const queryCache = new Map<string, Query | null>();
 
   function getQuery(adapter: LanguageAdapter, rule: Rule): Query | null {
     const key = `${adapter.lang}:${rule.id}`;
-    const cached = queryCache.get(key);
-    if (cached) return cached;
+    if (queryCache.has(key)) return queryCache.get(key) ?? null;
     try {
       const q = new Query(adapter.language, rule.query);
       queryCache.set(key, q);
       return q;
     } catch (err) {
-      // Une query malformee ne casse jamais tout le moteur : on la signale et on l'ignore.
+      // Une query malformee ne casse jamais tout le moteur : on la signale UNE fois et on l'ignore.
       console.warn(`[lexluthor] query invalide pour la regle "${rule.id}" (${adapter.lang}):`, err);
+      queryCache.set(key, null);
       return null;
     }
   }
@@ -95,6 +95,7 @@ export function createEngine(adapters: Partial<Record<LangId, LanguageAdapter>>)
   function collectCandidates(adapter: LanguageAdapter, root: SyntaxNode, source: string): Candidate[] {
     const out: Candidate[] = [];
     for (const rule of adapter.rules) {
+      if (rule.langs && !rule.langs.includes(adapter.lang)) continue; // regle propre a une grammaire
       const query = getQuery(adapter, rule);
       if (!query) continue;
       const anchorName = rule.anchor ?? 'site';

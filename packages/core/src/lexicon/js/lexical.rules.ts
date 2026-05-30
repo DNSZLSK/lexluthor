@@ -1,6 +1,6 @@
 // Couche LEXICALE : déclarations, affectations, return, throw.
 // Ces règles LISENT l'intention (via read/) au lieu de paraphraser la syntaxe.
-import type { Interpolator, Rule, SyntaxNode } from '../../engine/types';
+import type { Interpolator, Rule, RuleContext, SyntaxNode } from '../../engine/types';
 import { demonstrative, humanizeName, isGlossed, readExpr, shapePhrase, valueShape } from '../../read';
 import { patternNames } from './_helpers';
 
@@ -17,6 +17,25 @@ function valueComplement(node: SyntaxNode, t: Interpolator): string {
   if (shape === 'object') return 'un objet';
   if (shape === 'array') return 'une liste';
   return 'une valeur'; // ternaire / calcul / comparaison… : nom générique, pas de dump
+}
+
+/**
+ * Champ de classe lu comme une déclaration. Partagé entre js.field (`field_definition`,
+ * grammaire JS) et ts.field (`public_field_definition`, grammaire TS) : mêmes champs
+ * `name`/`value`, types de nœud différents selon la grammaire.
+ */
+export function renderField(ctx: RuleContext): string | null {
+  // JS `field_definition` expose le nom via `property` ; TS `public_field_definition` via `name`.
+  const nameNode = ctx.node.childForFieldName('name') ?? ctx.node.childForFieldName('property');
+  if (!nameNode) return null;
+  const id = nameNode.text.replace(/^#/, ''); // # = champ privé
+  const value = ctx.node.childForFieldName('value');
+  if (value) {
+    const read = readExpr(value, id);
+    if (read) return `On ${read}`;
+    return shapePhrase(value, 'define', subject(id));
+  }
+  return `On déclare ${subject(id)}`;
 }
 
 export const lexicalRules: Rule[] = [
@@ -63,6 +82,21 @@ export const lexicalRules: Rule[] = [
   },
 
   {
+    id: 'js.field',
+    layer: 'lexical',
+    langs: ['javascript'], // la grammaire TS utilise public_field_definition (voir ts.field)
+    query: '(field_definition) @site',
+    render: renderField,
+    doc: {
+      summary: 'Champ de classe (JS) : on lit la valeur comme une déclaration.',
+      examples: [
+        { code: 'class A { count = 0; }', subtitle: 'On définit le nombre à 0' },
+        { code: 'class A { items = []; }', subtitle: 'On définit les éléments' },
+      ],
+    },
+  },
+
+  {
     id: 'js.assignment',
     layer: 'lexical',
     query: '(expression_statement (assignment_expression) @site)',
@@ -83,7 +117,10 @@ export const lexicalRules: Rule[] = [
         const prop = left.childForFieldName('property');
         const obj = left.childForFieldName('object');
         if (prop && obj) {
-          return `On définit ${humanizeName(prop.text, 'le')} de ${humanizeName(obj.text, 'none')} à ${valueComplement(right, ctx.t)}`;
+          const val = valueComplement(right, ctx.t);
+          // `this.x = v` : l'objet est soi-même (implicite), on ne dit pas « de this ».
+          if (obj.type === 'this') return `On définit ${humanizeName(prop.text, 'le')} à ${val}`;
+          return `On définit ${humanizeName(prop.text, 'le')} de ${humanizeName(obj.text, 'none')} à ${val}`;
         }
       }
       if (left.type === 'identifier') {

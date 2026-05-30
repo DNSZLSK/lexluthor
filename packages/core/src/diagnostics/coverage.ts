@@ -48,6 +48,8 @@ export interface RepoReport {
 // + class_body pour rendre visible la couverture des méthodes).
 const STATEMENT_PARENTS = new Set(['program', 'statement_block', 'class_body']);
 const NOISE = new Set(['comment', 'empty_statement']);
+// Mots à ne jamais signaler : noms spéciaux/hérités (constructor lu à part par js.method).
+const NOISE_WORDS = new Set(['constructor', 'prototype', 'tostring', 'valueof']);
 
 // Phrases de forme exactes produites par shapePhrase() (values.ts) — un sous-titre qui en
 // fait partie est une lecture GÉNÉRIQUE (honnête mais améliorable), pas une vraie lecture.
@@ -98,10 +100,16 @@ function bump(map: Record<string, number>, key: string): void {
 /** Mots d'un identifiant à signaler au glossaire (ni glosés, ni verbes connus). */
 function harvestWords(id: string, report: FileReport): void {
   for (const w of splitIdentifier(id)) {
-    if (w.length <= 2 || /^\d+$/.test(w)) continue;
+    if (w.length <= 2 || /^\d+$/.test(w) || NOISE_WORDS.has(w)) continue;
     if (isGlossed(w) || readVerbName(w) !== null) continue;
     bump(report.unknownWords, w);
   }
+}
+
+function harvestVerb(name: string, report: FileReport): void {
+  if (readVerbName(name) !== null) return; // verbe connu ou convention *Of
+  const first = splitIdentifier(name)[0];
+  if (first && first.length > 2 && !/^\d+$/.test(first) && !NOISE_WORDS.has(first)) bump(report.missingVerbs, first);
 }
 
 const FUNCTION_LIKE = new Set([
@@ -122,15 +130,12 @@ const NAMED_DECL = new Set([
 ]);
 
 function collectNames(node: SyntaxNode, report: FileReport): void {
-  // Noms déclarés (fonctions, classes, types…).
+  // Noms déclarés (fonctions, méthodes, classes, types…).
   if (NAMED_DECL.has(node.type)) {
     const name = node.childForFieldName('name');
     if (name) {
       harvestWords(name.text, report);
-      if (FUNCTION_LIKE.has(node.type) && readVerbName(name.text) === null) {
-        const first = splitIdentifier(name.text)[0];
-        if (first && first.length > 2 && !/^\d+$/.test(first)) bump(report.missingVerbs, first);
-      }
+      if (FUNCTION_LIKE.has(node.type)) harvestVerb(name.text, report);
     }
   }
   // Déclarations de variables (et const = fonction fléchée -> verbe manquant).
@@ -139,10 +144,7 @@ function collectNames(node: SyntaxNode, report: FileReport): void {
     if (name?.type === 'identifier') {
       harvestWords(name.text, report);
       const value = node.childForFieldName('value');
-      if (value && (value.type === 'arrow_function' || value.type === 'function_expression') && readVerbName(name.text) === null) {
-        const first = splitIdentifier(name.text)[0];
-        if (first && first.length > 2 && !/^\d+$/.test(first)) bump(report.missingVerbs, first);
-      }
+      if (value && (value.type === 'arrow_function' || value.type === 'function_expression')) harvestVerb(name.text, report);
     }
   }
   // Paramètres formels (JS : identifier ; TS : required_parameter/optional_parameter).

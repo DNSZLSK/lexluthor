@@ -154,6 +154,27 @@ export const idiomaticRules: Rule[] = [
   },
 
   {
+    id: 'js.method',
+    layer: 'idiomatic',
+    claims: 'header', // le corps de la méthode re-rentre et se lit ligne à ligne
+    query: '(method_definition name: (_) @name) @site',
+    render(ctx) {
+      const name = ctx.t.name(ctx.caps.name).replace(/^#/, ''); // # = méthode privée
+      if (name === 'constructor') return "À la création de l'objet :";
+      const verb = readVerbName(name); // lit l'intention (get/load/ensure…) comme une fonction
+      return verb ? `On ${verb}` : `On définit la méthode ${name}`;
+    },
+    doc: {
+      summary: 'Méthode de classe : on lit le nom (intention) ; le constructeur à part.',
+      examples: [
+        { code: 'class A { getName() { return n; } }', subtitle: 'On récupère le nom' },
+        { code: 'class A { constructor() {} }', subtitle: "À la création de l'objet :" },
+        { code: 'class A { frobnicate() {} }', subtitle: 'On définit la méthode frobnicate' },
+      ],
+    },
+  },
+
+  {
     id: 'js.iife',
     layer: 'idiomatic',
     claims: 'header', // le corps de la fonction immediate re-rentre et est lu ligne a ligne

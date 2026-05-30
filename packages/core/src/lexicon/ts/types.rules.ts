@@ -2,8 +2,23 @@
 // fonctions, if, itération, async, signal…) est repris tel quel du lexique JS,
 // car tree-sitter-typescript partage les memes types de noeuds que JS.
 import type { Rule } from '../../engine/types';
+import { renderField } from '../js/lexical.rules';
 
 export const typescriptRules: Rule[] = [
+  {
+    id: 'ts.field',
+    layer: 'lexical',
+    query: '(public_field_definition) @site', // équivalent TS de field_definition (JS) -> js.field
+    render: renderField,
+    doc: {
+      summary: 'Champ de classe (TS) : on lit la valeur comme une déclaration.',
+      examples: [
+        { code: 'class A { count = 0; }', subtitle: 'On définit le nombre à 0' },
+        { code: 'class A { private items: number[] = []; }', subtitle: 'On définit les éléments' },
+      ],
+    },
+  },
+
   {
     id: 'ts.interface',
     layer: 'idiomatic',

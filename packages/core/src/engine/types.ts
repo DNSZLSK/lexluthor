@@ -77,6 +77,8 @@ export interface Rule {
   readonly id: string;
   readonly layer: RuleLayer;
   readonly query: string; // S-expression tree-sitter ; doit capturer l'ancre (@site par defaut)
+  readonly langs?: readonly LangId[]; // restreint la regle a ces langages (defaut: tous). Pour les
+  // noeuds propres a une grammaire (field_definition JS vs public_field_definition TS).
   readonly anchor?: string; // nom de la capture-ancre (defaut: 'site')
   readonly claims?: ClaimKind; // defaut: 'subtree'
   readonly test?: (node: SyntaxNode, ctx: RuleContext) => boolean; // garde semantique (AND avec la query)
