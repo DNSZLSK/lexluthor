@@ -25,6 +25,7 @@ export class RenderController implements vscode.Disposable {
   private style: RenderStyle;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
+  private errorShown = false;
 
   constructor(
     private readonly service: SubtitlerService,
@@ -106,6 +107,10 @@ export class RenderController implements vscode.Disposable {
       subs = await this.service.subtitlesFor(doc);
     } catch (err) {
       console.error('[lexluthor]', err);
+      if (!this.errorShown) {
+        this.errorShown = true;
+        void vscode.window.showErrorMessage(`LexLuthor : échec du chargement — ${(err as Error).message}`);
+      }
       this.clear(editor);
       return;
     }

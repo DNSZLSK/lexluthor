@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Language, Parser } from 'web-tree-sitter';
@@ -5,10 +6,10 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { createSubtitler } from '@lexluthor/core';
 import type { LangId, Subtitler, WasmProvider } from '@lexluthor/core';
 
-// Réplique wasm-node-provider SANS dépendre de 'vscode' (chemins fichiers + locateFile),
-// pour valider en CI le chemin runtime réel de l'extension : init moteur + chargement
-// grammaire depuis media/wasm + createSubtitler. (Le rendu in-editor lui-même se
-// vérifie à l'oeil dans VS Code — voir WAKEUP.)
+// Réplique wasm-node-provider SANS dépendre de 'vscode', en chargeant les .wasm
+// PAR OCTETS (comme le vrai provider de l'extension : wasmBinary + Language.load(bytes)).
+// Valide en CI le chemin runtime réel : init moteur + grammaire depuis media/wasm +
+// createSubtitler. (Le rendu in-editor se vérifie à l'oeil dans VS Code — voir WAKEUP.)
 const wasmDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'media', 'wasm');
 const GRAMMAR: Record<LangId, string> = {
   javascript: 'tree-sitter-javascript.wasm',
@@ -20,13 +21,14 @@ let initPromise: Promise<void> | null = null;
 const provider: WasmProvider = {
   initEngine() {
     if (!initPromise) {
-      initPromise = Parser.init({
-        locateFile: (p: string) => (p.endsWith('.wasm') ? join(wasmDir, 'web-tree-sitter.wasm') : p),
-      });
+      initPromise = (async () => {
+        const bytes = await readFile(join(wasmDir, 'web-tree-sitter.wasm'));
+        await Parser.init({ wasmBinary: bytes } as Parameters<typeof Parser.init>[0]);
+      })();
     }
     return initPromise;
   },
-  loadGrammar: (lang) => Language.load(join(wasmDir, GRAMMAR[lang])),
+  loadGrammar: async (lang) => Language.load(await readFile(join(wasmDir, GRAMMAR[lang]))),
 };
 
 describe('runtime extension (provider node + createSubtitler, .wasm embarqués)', () => {
