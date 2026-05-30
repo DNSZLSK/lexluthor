@@ -1,6 +1,7 @@
 // Couche IDIOMATIQUE : les "expressions courantes" reconnues d'un bloc, comme
 // "avoir lieu" en francais. On ne les decompose plus, on les lit d'un coup.
 import type { Rule } from '../../engine/types';
+import { readVerbName } from '../../read';
 import { httpMethodLabel, statusPhrase } from './_helpers';
 
 const ARRAY_METHOD_PHRASES: Record<string, string> = {
@@ -77,14 +78,18 @@ export const idiomaticRules: Rule[] = [
     claims: 'header',
     query: '(function_declaration name: (identifier) @name) @site',
     render(ctx) {
+      const name = ctx.t.name(ctx.caps.name);
+      const verb = readVerbName(name); // lit l'intention depuis le nom (ensure/load/get…)
+      if (verb) return `On ${verb}`;
       const isAsync = ctx.node.child(0)?.text === 'async';
-      return `On définit la fonction${isAsync ? ' asynchrone' : ''} ${ctx.t.name(ctx.caps.name)}`;
+      return `On définit la fonction${isAsync ? ' asynchrone' : ''} ${name}`;
     },
     doc: {
-      summary: 'Declaration de fonction (sync/async).',
+      summary: 'Déclaration de fonction : on lit le nom (intention).',
       examples: [
-        { code: 'function add(a, b) { return a + b; }', subtitle: 'On définit la fonction add' },
-        { code: 'async function load() { await go(); }', subtitle: 'On définit la fonction asynchrone load' },
+        { code: 'function ensureAdapter(lang) { return a; }', subtitle: "On s'assure qu'un adapter existe" },
+        { code: 'function loadGrammar(lang) { return g; }', subtitle: 'On charge la grammaire' },
+        { code: 'function frobnicate() {}', subtitle: 'On définit la fonction frobnicate' },
       ],
     },
   },
@@ -96,16 +101,33 @@ export const idiomaticRules: Rule[] = [
     query:
       '(lexical_declaration (variable_declarator name: (identifier) @name value: [(arrow_function) (function_expression)] @fn)) @site',
     render(ctx) {
-      const fn = ctx.caps.fn;
-      const isAsync = fn?.child(0)?.text === 'async';
-      return `On définit la fonction${isAsync ? ' asynchrone' : ''} ${ctx.t.name(ctx.caps.name)}`;
+      const name = ctx.t.name(ctx.caps.name);
+      const verb = readVerbName(name);
+      if (verb) return `On ${verb}`;
+      const isAsync = ctx.caps.fn?.child(0)?.text === 'async';
+      return `On définit la fonction${isAsync ? ' asynchrone' : ''} ${name}`;
     },
     doc: {
-      summary: 'Fonction affectee a une const/let (fleche ou expression).',
+      summary: 'Fonction affectée à une const/let (fléchée ou expression).',
       examples: [
-        { code: 'const add = (a, b) => a + b;', subtitle: 'On définit la fonction add' },
-        { code: 'const load = async () => { await go(); };', subtitle: 'On définit la fonction asynchrone load' },
+        { code: 'const loadGrammar = (lang) => g;', subtitle: 'On charge la grammaire' },
+        { code: 'const helper = () => {};', subtitle: 'On définit la fonction helper' },
       ],
+    },
+  },
+
+  {
+    id: 'js.promise-reject',
+    layer: 'idiomatic',
+    query:
+      '(call_expression function: (member_expression object: (identifier) @_o property: (property_identifier) @_p) (#eq? @_o "Promise") (#eq? @_p "reject")) @site',
+    render(ctx) {
+      const a = ctx.node.childForFieldName('arguments')?.namedChildren[0];
+      return a?.type === 'new_expression' ? 'On rejette avec une erreur' : 'On rejette la promesse';
+    },
+    doc: {
+      summary: 'Promise.reject (échec).',
+      examples: [{ code: "Promise.reject(new Error('x'));", subtitle: 'On rejette avec une erreur' }],
     },
   },
 

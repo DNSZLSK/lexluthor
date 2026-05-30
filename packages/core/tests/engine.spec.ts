@@ -24,7 +24,7 @@ describe('moteur de sous-titrage', () => {
     for (const expected of [
       'On importe le module express',
       'Quand on reçoit une requête GET (lecture) sur /users/:id',
-      "Si user n'existe pas :",
+      "Si aucun utilisateur n'existe :",
       'On répond : pas trouvé (404)',
       'On renvoie les données au format JSON',
       'On récupère name, email d\'un objet',

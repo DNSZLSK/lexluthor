@@ -2,6 +2,7 @@
 // EN-TETE ('header') -> les instructions du corps re-rentrent dans le matching
 // et recoivent leurs propres sous-titres (on lit la structure ET son contenu).
 import type { Rule } from '../../engine/types';
+import { isGlossed, noneOf } from '../../read';
 
 export const compositionalRules: Rule[] = [
   {
@@ -11,10 +12,17 @@ export const compositionalRules: Rule[] = [
     specificity: 85, // bat le if generique pour les gardes negatives
     query:
       '(if_statement condition: (parenthesized_expression (unary_expression operator: "!" argument: (_) @subj))) @site',
-    render: (ctx) => `Si ${ctx.t.truncate(ctx.text(ctx.caps.subj), 40)} n'existe pas :`,
+    render(ctx) {
+      const subj = ctx.caps.subj;
+      if (subj?.type === 'identifier' && isGlossed(subj.text)) return `Si ${noneOf(subj.text)} n'existe :`;
+      return `Si ${ctx.t.truncate(ctx.text(subj), 40)} n'existe pas :`;
+    },
     doc: {
-      summary: 'Garde negative (if (!x)…).',
-      examples: [{ code: 'if (!token) { reject(); }', subtitle: "Si token n'existe pas :" }],
+      summary: 'Garde négative (if (!x)…) : on lit le sujet.',
+      examples: [
+        { code: 'if (!user) { fail(); }', subtitle: "Si aucun utilisateur n'existe :" },
+        { code: 'if (!ok) { fail(); }', subtitle: "Si ok n'existe pas :" },
+      ],
     },
   },
 
