@@ -21,7 +21,8 @@
     "commands": [
       { "command": "lexluthor.openReader", "title": "LexLuthor : ouvrir le lecteur VOSTFR", "category": "LexLuthor" },
       { "command": "lexluthor.toggleInline", "title": "LexLuthor : activer/désactiver les sous-titres en ligne", "category": "LexLuthor" },
-      { "command": "lexluthor.cycleDensity", "title": "LexLuthor : changer la densité des sous-titres", "category": "LexLuthor" }
+      { "command": "lexluthor.cycleDensity", "title": "LexLuthor : changer la densité des sous-titres", "category": "LexLuthor" },
+      { "command": "lexluthor.cycleLanguage", "title": "LexLuthor : changer la langue des sous-titres (FR/EN/ES)", "category": "LexLuthor" }
     ],
     "configuration": {
       "title": "LexLuthor",
@@ -38,9 +39,14 @@
         },
         "lexluthor.humanLanguage": {
           "type": "string",
-          "enum": ["fr"],
+          "enum": ["fr", "en", "es"],
+          "enumDescriptions": [
+            "Français (complet).",
+            "English (complete).",
+            "Español (parcial : las claves sin traducir se omiten)."
+          ],
           "default": "fr",
-          "description": "Langue des sous-titres (EN/ES à venir)."
+          "description": "Langue des sous-titres. ES est amorcé : les phrases non traduites sont omises (VO)."
         },
         "lexluthor.languages": {
           "type": "array",

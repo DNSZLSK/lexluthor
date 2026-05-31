@@ -2,6 +2,7 @@
 // alias du Node de web-tree-sitter (riche : type/text/positions/navigation).
 // Si on change un jour de backend, on ne touche qu'ici + adapters/.
 import type { Language, Node } from 'web-tree-sitter';
+import type { LocaleId, Message } from './message';
 
 export type SyntaxNode = Node;
 
@@ -42,30 +43,32 @@ export interface Subtitle {
  */
 export type ClaimKind = 'subtree' | 'header';
 
+/**
+ * Doc-as-test multi-locale : un exemple porte la CLE (intention, stable) et les
+ * phrases attendues PAR LOCALE (variables). `es` est optionnel (VO tant que non traduit).
+ */
 export interface RuleExample {
   readonly code: string;
-  readonly subtitle: string;
+  readonly key: string; // cle de message attendue (intention)
+  readonly params?: Readonly<Record<string, string | number>>; // params attendus (optionnel)
+  readonly expect: { readonly fr: string; readonly en: string; readonly es?: string };
 }
 
-/** Helpers d'interpolation FR, centralises (testables isolement). */
-export interface Interpolator {
+/** Extraction de CODE (locale-independante) exposee a render. Aucune prose ici. */
+export interface RawText {
   /** Texte d'un litteral chaine sans ses guillemets. */
   lit(node: SyntaxNode | string | null | undefined): string;
   /** Texte brut d'un noeud (ex: nom d'identifiant). */
   name(node: SyntaxNode | null | undefined): string;
-  /** Elision : ('le','utilisateur') -> "l'utilisateur" ; ('le','serveur') -> "le serveur". */
-  elide(article: 'le' | 'la' | 'de', word: string): string;
-  /** Tronque proprement une longue phrase. */
-  truncate(s: string, max?: number): string;
 }
 
-/** Contexte passe a render() : l'ancre, les captures de la query, et des helpers. */
+/** Contexte passe a render() : l'ancre, les captures de la query, l'extraction de code. */
 export interface RuleContext {
   readonly node: SyntaxNode; // noeud ancre
   readonly caps: Readonly<Record<string, SyntaxNode>>; // 1re capture par nom
   readonly source: string;
   readonly lang: LangId;
-  readonly t: Interpolator;
+  readonly raw: RawText;
   text(node: SyntaxNode | null | undefined): string;
 }
 
@@ -82,7 +85,7 @@ export interface Rule {
   readonly anchor?: string; // nom de la capture-ancre (defaut: 'site')
   readonly claims?: ClaimKind; // defaut: 'subtree'
   readonly test?: (node: SyntaxNode, ctx: RuleContext) => boolean; // garde semantique (AND avec la query)
-  readonly render: (ctx: RuleContext) => string | null; // null = "je renonce" -> regle suivante (jamais deviner)
+  readonly render: (ctx: RuleContext) => Message | null; // null = "je renonce" -> regle suivante (jamais deviner)
   readonly specificity?: number; // override ; defaut derive de la couche
   readonly severity?: Severity; // pour la couche signal -> 'alert'
   readonly doc: { readonly summary: string; readonly examples: readonly RuleExample[] };
@@ -102,5 +105,5 @@ export interface LanguageAdapter {
 }
 
 export interface SubtitleEngine {
-  subtitle(source: string, lang: LangId): Subtitle[];
+  subtitle(source: string, lang: LangId, locale?: LocaleId): Subtitle[];
 }

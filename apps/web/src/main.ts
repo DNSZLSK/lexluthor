@@ -1,21 +1,36 @@
 import { createReaderHighlighter, interleave, renderPlayer } from '@lexluthor/reader';
 import { createSubtitler, samples } from '@lexluthor/core';
-import type { LangId } from '@lexluthor/core';
+import type { LangId, LocaleId } from '@lexluthor/core';
 import { webWasmProvider } from './adapters/loader';
+
+const LOCALES: readonly LocaleId[] = ['fr', 'en', 'es'];
+const LOCALE_KEY = 'lexluthor.locale';
+
+/** Locale initiale : preference stockee, sinon langue du navigateur, sinon FR. */
+function initialLocale(): LocaleId {
+  const stored = localStorage.getItem(LOCALE_KEY);
+  if (stored && (LOCALES as readonly string[]).includes(stored)) return stored as LocaleId;
+  const nav = (navigator.language || 'fr').slice(0, 2).toLowerCase();
+  return (LOCALES as readonly string[]).includes(nav) ? (nav as LocaleId) : 'fr';
+}
 
 const highlighter = createReaderHighlighter({ onig: import('shiki/wasm') });
 const subtitler = createSubtitler(webWasmProvider);
 
 const $code = document.querySelector<HTMLTextAreaElement>('#code')!;
 const $lang = document.querySelector<HTMLSelectElement>('#lang')!;
+const $locale = document.querySelector<HTMLSelectElement>('#locale')!;
 const $sample = document.querySelector<HTMLButtonElement>('#sample')!;
 const $player = document.querySelector<HTMLElement>('#player')!;
 const $status = document.querySelector<HTMLElement>('#status')!;
+
+$locale.value = initialLocale();
 
 let renderSeq = 0;
 async function update(): Promise<void> {
   const seq = ++renderSeq;
   const lang = $lang.value as LangId;
+  const locale = $locale.value as LocaleId;
   const code = $code.value;
 
   if (!code.trim()) {
@@ -26,7 +41,7 @@ async function update(): Promise<void> {
 
   $status.textContent = '…';
   try {
-    const [lines, subs] = await Promise.all([highlighter.tokenizeLines(code, lang), subtitler.subtitle(code, lang)]);
+    const [lines, subs] = await Promise.all([highlighter.tokenizeLines(code, lang), subtitler.subtitle(code, lang, locale)]);
     if (seq !== renderSeq) return; // un rendu plus récent a pris la main
     renderPlayer($player, interleave(lines, subs));
     $status.textContent = `${subs.length} sous-titre${subs.length > 1 ? 's' : ''}`;
@@ -46,6 +61,10 @@ function scheduleUpdate(): void {
 
 $code.addEventListener('input', scheduleUpdate);
 $lang.addEventListener('change', update);
+$locale.addEventListener('change', () => {
+  localStorage.setItem(LOCALE_KEY, $locale.value);
+  void update(); // seul le texte change : meme decoupage, on re-rend
+});
 
 let sampleIndex = 0;
 function loadSample(): void {

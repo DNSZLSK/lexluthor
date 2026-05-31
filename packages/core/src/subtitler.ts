@@ -3,6 +3,7 @@ import { createEngine } from './engine/engine';
 import { createJavaScriptAdapter } from './adapters/javascript';
 import { createTypeScriptAdapter } from './adapters/typescript';
 import type { LangId, LanguageAdapter, Subtitle } from './engine/types';
+import type { LocaleId } from './engine/message';
 import type { WasmProvider } from './adapters/wasm-provider';
 
 const ADAPTER_FACTORIES: Partial<Record<LangId, (language: Language) => LanguageAdapter>> = {
@@ -14,7 +15,7 @@ export interface Subtitler {
   /** Vrai si un adapter existe pour ce langage. */
   supports(lang: LangId): boolean;
   /** Sous-titre le code (charge paresseusement la grammaire au 1er usage du langage). */
-  subtitle(code: string, lang: LangId): Promise<Subtitle[]>;
+  subtitle(code: string, lang: LangId, locale?: LocaleId): Promise<Subtitle[]>;
 }
 
 /**
@@ -46,9 +47,9 @@ export function createSubtitler(provider: WasmProvider): Subtitler {
 
   return {
     supports: (lang) => lang in ADAPTER_FACTORIES,
-    async subtitle(code, lang) {
+    async subtitle(code, lang, locale) {
       await ensureAdapter(lang);
-      return engine.subtitle(code, lang);
+      return engine.subtitle(code, lang, locale);
     },
   };
 }

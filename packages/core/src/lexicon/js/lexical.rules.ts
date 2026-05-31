@@ -1,41 +1,48 @@
 // Couche LEXICALE : déclarations, affectations, return, throw.
-// Ces règles LISENT l'intention (via read/) au lieu de paraphraser la syntaxe.
-import type { Interpolator, Rule, RuleContext, SyntaxNode } from '../../engine/types';
-import { demonstrative, humanizeName, isGlossed, readExpr, shapePhrase, valueShape } from '../../read';
+// render() ne produit que des CLES + tokens de code ; la prose (intention lue via le
+// reader) est composee par locale dans le catalogue. On ne devine jamais (null).
+import type { Message, MsgParams } from '../../engine/message';
+import { msg } from '../../engine/message';
+import type { Rule, RuleContext, SyntaxNode } from '../../engine/types';
+import { classifyExpr } from '../../read/classify/expr.classify';
+import { shapeOf } from '../../read/classify/values.classify';
+import { isGlossedHead, splitIdentifier } from '../../read/locale/shared';
 import { patternNames } from './_helpers';
 
-/** Sujet lisible d'un identifiant : groupe nominal si le nom est « connu », sinon le nom brut. */
-function subject(id: string): string {
-  return isGlossed(id) ? humanizeName(id, 'le') : id;
+/** Params d'un sujet lisible : mots de code + si la tete est glossee + identifiant brut. */
+function subjectParams(id: string): MsgParams {
+  return { subjectWords: splitIdentifier(id).join(' '), glossed: isGlossedHead(id) ? 1 : 0, raw: id };
 }
 
-/** Complément nominal d'une valeur affectée (objet d'« enregistre … »). Jamais de code complexe recopié. */
-function valueComplement(node: SyntaxNode, t: Interpolator): string {
-  if (node.type === 'identifier') return humanizeName(node.text, 'le');
-  const shape = valueShape(node);
-  if (shape === 'literal' || shape === 'member') return t.truncate(node.text, 30);
-  if (shape === 'object') return 'un objet';
-  if (shape === 'array') return 'une liste';
-  return 'une valeur'; // ternaire / calcul / comparaison… : nom générique, pas de dump
+/** Complement nominal d'une valeur affectee : on classe sa FORME (jamais de code complexe). */
+function complementParams(node: SyntaxNode): MsgParams {
+  if (node.type === 'identifier') return { ck: 'name', cw: splitIdentifier(node.text).join(' ') };
+  const { shape } = shapeOf(node);
+  if (shape === 'literal' || shape === 'member') return { ck: 'text', ct: node.text };
+  if (shape === 'object') return { ck: 'object' };
+  if (shape === 'array') return { ck: 'array' };
+  return { ck: 'value' };
+}
+
+/** Lit une valeur (RHS d'une declaration / affectation) : intention lisible, sinon forme. */
+function readValue(value: SyntaxNode, name: string): Message {
+  const info = classifyExpr(value, name);
+  if (info) return msg('expr.read', info);
+  const { shape, text } = shapeOf(value);
+  return msg('shape.define', { shape, text, ...subjectParams(name) });
 }
 
 /**
  * Champ de classe lu comme une déclaration. Partagé entre js.field (`field_definition`,
- * grammaire JS) et ts.field (`public_field_definition`, grammaire TS) : mêmes champs
- * `name`/`value`, types de nœud différents selon la grammaire.
+ * grammaire JS) et ts.field (`public_field_definition`, grammaire TS).
  */
-export function renderField(ctx: RuleContext): string | null {
-  // JS `field_definition` expose le nom via `property` ; TS `public_field_definition` via `name`.
+export function renderField(ctx: RuleContext): Message | null {
   const nameNode = ctx.node.childForFieldName('name') ?? ctx.node.childForFieldName('property');
   if (!nameNode) return null;
   const id = nameNode.text.replace(/^#/, ''); // # = champ privé
   const value = ctx.node.childForFieldName('value');
-  if (value) {
-    const read = readExpr(value, id);
-    if (read) return `On ${read}`;
-    return shapePhrase(value, 'define', subject(id));
-  }
-  return `On déclare ${subject(id)}`;
+  if (value) return readValue(value, id);
+  return msg('decl.declare', subjectParams(id));
 }
 
 export const lexicalRules: Rule[] = [
@@ -48,35 +55,27 @@ export const lexicalRules: Rule[] = [
       const nameNode = decl?.childForFieldName('name');
       if (!decl || !nameNode) return null;
 
-      // Destructuration : on liste les champs récupérés.
       if (nameNode.type === 'object_pattern' || nameNode.type === 'array_pattern') {
         const names = patternNames(nameNode);
-        const src = nameNode.type === 'array_pattern' ? "d'un tableau" : "d'un objet";
-        return names.length ? `On récupère ${names.join(', ')} ${src}` : `On décompose les valeurs ${src}`;
+        const src = nameNode.type === 'array_pattern' ? 'array' : 'object';
+        return msg('decl.destructure', { names: names.join(', '), src });
       }
 
       const value = decl.childForFieldName('value');
-      if (value) {
-        // On LIT l'intention de la valeur (lookup, appel, await, new…), en passant
-        // le nom de la variable comme objet possible pour les verbes nus.
-        const read = readExpr(value, nameNode.text);
-        if (read) return `On ${read}`;
-        // Sinon : phrase de FORME (objet, ternaire, calcul, template…), jamais le code brut.
-        return shapePhrase(value, 'define', subject(nameNode.text));
-      }
-      return `On déclare ${subject(nameNode.text)}`;
+      if (value) return readValue(value, nameNode.text);
+      return msg('decl.declare', subjectParams(nameNode.text));
     },
     doc: {
       summary: 'Déclaration const/let : on lit la valeur, sinon phrase de forme.',
       examples: [
-        { code: 'const factory = ADAPTER_FACTORIES[lang];', subtitle: 'On récupère la fabrique d\'adapter pour ce langage' },
-        { code: 'const language = await provider.loadGrammar(lang);', subtitle: 'On charge la grammaire pour ce langage' },
-        { code: 'const port = 3000;', subtitle: 'On définit le port à 3000' },
-        { code: 'const { name, email } = req.body;', subtitle: "On récupère name, email d'un objet" },
-        { code: "const apostropheBase = cond ? 'd' : 'l';", subtitle: "On définit la base d'apostrophe selon une condition" },
-        { code: 'const count = base * 2;', subtitle: 'On calcule le nombre' },
-        { code: 'const ok = a === b;', subtitle: 'On définit ok par une comparaison' },
-        { code: 'const msg = `Total: ${n}`;', subtitle: 'On compose le message' },
+        { code: 'const factory = ADAPTER_FACTORIES[lang];', key: 'expr.read', expect: { fr: "On récupère la fabrique d'adapter pour ce langage", en: 'We get the adapter factory for this language' } },
+        { code: 'const language = await provider.loadGrammar(lang);', key: 'expr.read', expect: { fr: 'On charge la grammaire pour ce langage', en: 'We load the grammar for this language' } },
+        { code: 'const port = 3000;', key: 'shape.define', expect: { fr: 'On définit le port à 3000', en: 'We set the port to 3000' } },
+        { code: 'const { name, email } = req.body;', key: 'decl.destructure', expect: { fr: "On récupère name, email d'un objet", en: 'We extract name, email from an object' } },
+        { code: "const apostropheBase = cond ? 'd' : 'l';", key: 'shape.define', expect: { fr: "On définit la base d'apostrophe selon une condition", en: 'We set the apostrophe base based on a condition' } },
+        { code: 'const count = base * 2;', key: 'shape.define', expect: { fr: 'On calcule le nombre', en: 'We compute the count' } },
+        { code: 'const ok = a === b;', key: 'shape.define', expect: { fr: 'On définit ok par une comparaison', en: 'We set ok from a comparison' } },
+        { code: 'const msg = `Total: ${n}`;', key: 'shape.define', expect: { fr: 'On compose le message', en: 'We compose the message' } },
       ],
     },
   },
@@ -84,14 +83,14 @@ export const lexicalRules: Rule[] = [
   {
     id: 'js.field',
     layer: 'lexical',
-    langs: ['javascript'], // la grammaire TS utilise public_field_definition (voir ts.field)
+    langs: ['javascript'],
     query: '(field_definition) @site',
     render: renderField,
     doc: {
       summary: 'Champ de classe (JS) : on lit la valeur comme une déclaration.',
       examples: [
-        { code: 'class A { count = 0; }', subtitle: 'On définit le nombre à 0' },
-        { code: 'class A { items = []; }', subtitle: 'On définit les éléments' },
+        { code: 'class A { count = 0; }', key: 'shape.define', expect: { fr: 'On définit le nombre à 0', en: 'We set the count to 0' } },
+        { code: 'class A { items = []; }', key: 'shape.define', expect: { fr: 'On définit les éléments', en: 'We set the items' } },
       ],
     },
   },
@@ -109,34 +108,30 @@ export const lexicalRules: Rule[] = [
         const obj = left.childForFieldName('object');
         const index = left.childForFieldName('index');
         const isCache = obj ? /cache|map|store|registry|adapters|byId|index/i.test(obj.text) : false;
-        let phrase = isCache ? `met ${valueComplement(right, ctx.t)} en cache` : `enregistre ${valueComplement(right, ctx.t)}`;
-        if (index?.type === 'identifier') phrase += ` pour ${demonstrative(index.text)}`;
-        return `On ${phrase}`;
+        return msg('assign.collection', {
+          isCache: isCache ? 1 : 0,
+          index: index?.type === 'identifier' ? splitIdentifier(index.text).join(' ') : '',
+          ...complementParams(right),
+        });
       }
       if (left.type === 'member_expression') {
         const prop = left.childForFieldName('property');
         const obj = left.childForFieldName('object');
         if (prop && obj) {
-          const val = valueComplement(right, ctx.t);
-          // `this.x = v` : l'objet est soi-même (implicite), on ne dit pas « de this ».
-          if (obj.type === 'this') return `On définit ${humanizeName(prop.text, 'le')} à ${val}`;
-          return `On définit ${humanizeName(prop.text, 'le')} de ${humanizeName(obj.text, 'none')} à ${val}`;
+          const base = { prop: splitIdentifier(prop.text).join(' '), ...complementParams(right) };
+          if (obj.type === 'this') return msg('assign.field', base);
+          return msg('assign.fieldOf', { ...base, obj: splitIdentifier(obj.text).join(' ') });
         }
       }
-      if (left.type === 'identifier') {
-        // Réaffectation : on lit la valeur (appel/lookup), sinon phrase de forme.
-        const read = readExpr(right, left.text);
-        if (read) return `On ${read}`;
-        return shapePhrase(right, 'define', subject(left.text));
-      }
+      if (left.type === 'identifier') return readValue(right, left.text);
       return null;
     },
     doc: {
       summary: 'Affectation : écriture dans une collection / un champ.',
       examples: [
-        { code: 'adapters[lang] = adapter;', subtitle: "On met l'adapter en cache pour ce langage" },
-        { code: 'obj[key] = a ? b : c;', subtitle: 'On enregistre une valeur pour cette clé' },
-        { code: 'count = count + 1;', subtitle: 'On calcule le nombre' },
+        { code: 'adapters[lang] = adapter;', key: 'assign.collection', expect: { fr: "On met l'adapter en cache pour ce langage", en: 'We cache the adapter for this language' } },
+        { code: 'obj[key] = a ? b : c;', key: 'assign.collection', expect: { fr: 'On enregistre une valeur pour cette clé', en: 'We store a value for this key' } },
+        { code: 'count = count + 1;', key: 'shape.define', expect: { fr: 'On calcule le nombre', en: 'We compute the count' } },
       ],
     },
   },
@@ -147,24 +142,20 @@ export const lexicalRules: Rule[] = [
     query: '(expression_statement (_) @expr) @site',
     render(ctx) {
       const expr = ctx.caps.expr;
-      // L'affectation a sa propre regle ; ici les appels / await / new « nus ».
       if (!expr || expr.type === 'assignment_expression') return null;
-      // Un appel portant un callback (handle(() => {…})) : on ne le reclame pas en
-      // sous-arbre (ca avalerait le corps). Les idiomes utiles (Express, listen…) le couvrent ;
-      // sinon on laisse le corps re-rentrer.
       const call = expr.type === 'await_expression' ? expr.namedChildren[0] : expr;
       if (call?.type === 'call_expression') {
         const callArgs = call.childForFieldName('arguments')?.namedChildren ?? [];
         if (callArgs.some((a) => a.type === 'arrow_function' || a.type === 'function_expression')) return null;
       }
-      const read = readExpr(expr); // null si verbe inconnu -> pas de sous-titre (jamais deviner)
-      return read ? `On ${read}` : null;
+      const info = classifyExpr(expr);
+      return info ? msg('expr.read', info) : null;
     },
     doc: {
       summary: 'Instruction-expression « nue » (appel/await) : on lit le verbe connu, sinon rien.',
       examples: [
-        { code: 'await provider.initEngine();', subtitle: 'On initialise le moteur' },
-        { code: 'users.set(id, user);', subtitle: "On enregistre l'utilisateur pour cet identifiant" },
+        { code: 'await provider.initEngine();', key: 'expr.read', expect: { fr: 'On initialise le moteur', en: 'We initialize the engine' } },
+        { code: 'users.set(id, user);', key: 'expr.read', expect: { fr: "On enregistre l'utilisateur pour cet identifiant", en: 'We store the user for this identifier' } },
       ],
     },
   },
@@ -175,22 +166,22 @@ export const lexicalRules: Rule[] = [
     query: '(return_statement) @site',
     render(ctx) {
       const value = ctx.node.namedChildren[0];
-      if (!value) return 'On sort de la fonction';
-      if (value.type === 'identifier') return `On renvoie ${subject(value.text)}`;
-      // Phrase de FORME (objet, ternaire, calcul, template…) : jamais le code brut.
-      return shapePhrase(value, 'return');
+      if (!value) return msg('return.void');
+      if (value.type === 'identifier') return msg('return.value', subjectParams(value.text));
+      const { shape, text } = shapeOf(value);
+      return msg('shape.return', { shape, text });
     },
     doc: {
       summary: 'Instruction return : sujet lisible, sinon phrase de forme.',
       examples: [
-        { code: 'function f() { return total; }', subtitle: 'On renvoie total' },
-        { code: 'function f() { return adapter; }', subtitle: "On renvoie l'adapter" },
-        { code: 'function f() { return { id, name }; }', subtitle: 'On renvoie un objet' },
-        { code: 'function f() { return a ? b : c; }', subtitle: 'On renvoie une valeur selon une condition' },
-        { code: 'function f() { return cache ?? fallback; }', subtitle: 'On renvoie une valeur ou sa valeur par défaut' },
-        { code: 'function f() { return a - b; }', subtitle: "On renvoie le résultat d'un calcul" },
-        { code: 'function f() { return a === b; }', subtitle: "On renvoie le résultat d'une comparaison" },
-        { code: 'function f() { return; }', subtitle: 'On sort de la fonction' },
+        { code: 'function f() { return total; }', key: 'return.value', expect: { fr: 'On renvoie total', en: 'We return total' } },
+        { code: 'function f() { return adapter; }', key: 'return.value', expect: { fr: "On renvoie l'adapter", en: 'We return the adapter' } },
+        { code: 'function f() { return { id, name }; }', key: 'shape.return', expect: { fr: 'On renvoie un objet', en: 'We return an object' } },
+        { code: 'function f() { return a ? b : c; }', key: 'shape.return', expect: { fr: 'On renvoie une valeur selon une condition', en: 'We return a value based on a condition' } },
+        { code: 'function f() { return cache ?? fallback; }', key: 'shape.return', expect: { fr: 'On renvoie une valeur ou sa valeur par défaut', en: 'We return a value or its default' } },
+        { code: 'function f() { return a - b; }', key: 'shape.return', expect: { fr: "On renvoie le résultat d'un calcul", en: 'We return the result of a computation' } },
+        { code: 'function f() { return a === b; }', key: 'shape.return', expect: { fr: "On renvoie le résultat d'une comparaison", en: 'We return the result of a comparison' } },
+        { code: 'function f() { return; }', key: 'return.void', expect: { fr: 'On sort de la fonction', en: 'We exit the function' } },
       ],
     },
   },
@@ -201,19 +192,15 @@ export const lexicalRules: Rule[] = [
     query: '(throw_statement) @site',
     render(ctx) {
       const value = ctx.node.namedChildren[0];
-      if (!value) return 'On déclenche une erreur';
-      // Court -> on montre l'erreur ; long/complexe -> générique, jamais de code recopié.
+      if (!value) return msg('throw.error');
       const raw = ctx.text(value).replace(/\s+/g, ' ').trim();
-      return raw.length <= 48 ? `On déclenche une erreur : ${raw}` : 'On déclenche une erreur';
+      return raw.length <= 48 ? msg('throw.errorShown', { text: raw }) : msg('throw.error');
     },
     doc: {
       summary: 'Instruction throw : erreur courte montrée, sinon générique.',
       examples: [
-        { code: "function f() { throw new Error('boom'); }", subtitle: "On déclenche une erreur : new Error('boom')" },
-        {
-          code: 'function f() { throw new Error(`Unsupported language ${lang} with a very long detail`); }',
-          subtitle: 'On déclenche une erreur',
-        },
+        { code: "function f() { throw new Error('boom'); }", key: 'throw.errorShown', expect: { fr: "On déclenche une erreur : new Error('boom')", en: "We throw an error: new Error('boom')" } },
+        { code: 'function f() { throw new Error(`Unsupported language ${lang} with a very long detail`); }', key: 'throw.error', expect: { fr: 'On déclenche une erreur', en: 'We throw an error' } },
       ],
     },
   },

@@ -11,14 +11,27 @@ export type {
   RuleContext,
   RuleExample,
   ClaimKind,
-  Interpolator,
+  RawText,
   LanguageAdapter,
   SubtitleEngine,
   SyntaxNode,
 } from './engine/types';
 
+// i18n : messages structures, catalogues par locale, translators.
+export type {
+  LocaleId,
+  Message,
+  MsgParams,
+  Catalog,
+  CatalogEntry,
+  LocaleHelpers,
+  Translator,
+} from './engine/message';
+export { msg } from './engine/message';
+export { makeTranslators } from './lexicon/catalog';
+
 export { createEngine } from './engine/engine';
-export { interpolator } from './engine/interpolate';
+export type { EngineOptions } from './engine/engine';
 
 export { createJavaScriptAdapter } from './adapters/javascript';
 export { createTypeScriptAdapter } from './adapters/typescript';

@@ -4,7 +4,7 @@
 // depuis des URLs asWebviewUri injectées par l'extension (window.__lexluthor).
 import { Language, Parser } from 'web-tree-sitter';
 import { createSubtitler } from '@lexluthor/core';
-import type { LangId, WasmProvider } from '@lexluthor/core';
+import type { LangId, LocaleId, WasmProvider } from '@lexluthor/core';
 import { createReaderHighlighter, interleave, renderPlayer } from '@lexluthor/reader';
 
 declare function acquireVsCodeApi(): { postMessage(msg: unknown): void };
@@ -45,10 +45,10 @@ const LANG_MAP: Record<string, LangId> = {
 const player = document.getElementById('player')!;
 
 let renderSeq = 0;
-async function render(code: string, lang: LangId): Promise<void> {
+async function render(code: string, lang: LangId, locale: LocaleId): Promise<void> {
   const seq = ++renderSeq;
   try {
-    const [lines, subs] = await Promise.all([highlighter.tokenizeLines(code, lang), subtitler.subtitle(code, lang)]);
+    const [lines, subs] = await Promise.all([highlighter.tokenizeLines(code, lang), subtitler.subtitle(code, lang, locale)]);
     if (seq !== renderSeq) return; // un rendu plus récent a pris la main
     renderPlayer(player, interleave(lines, subs));
   } catch (err) {
@@ -68,8 +68,9 @@ window.addEventListener('message', (e: MessageEvent) => {
       return;
     }
     const code = msg.code as string;
+    const locale = (msg.locale as LocaleId) ?? 'fr';
     clearTimeout(debounce);
-    debounce = setTimeout(() => void render(code, lang), 60);
+    debounce = setTimeout(() => void render(code, lang, locale), 60);
   } else if (msg.type === 'scroll') {
     const el = player.querySelector(`[data-code-line="${(msg.topLine as number) + 1}"]`);
     if (el) el.scrollIntoView({ block: 'start' });

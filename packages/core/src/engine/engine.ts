@@ -10,8 +10,26 @@ import type {
   SubtitleEngine,
   SyntaxNode,
 } from './types';
-import { interpolator } from './interpolate';
+import type { LocaleId, Message, Translator } from './message';
+import { makeTranslators } from '../lexicon/catalog';
+import { lit as litRaw } from '../read/locale/shared';
 import { depthOf, intervalsOverlap, rangeOf } from '../adapters/treesitter';
+
+export interface EngineOptions {
+  /** Translators par locale (injection). Defaut : fabrique les 3 depuis le catalogue. */
+  readonly translators?: Readonly<Record<LocaleId, Translator>>;
+}
+
+function asText(node: SyntaxNode | string | null | undefined): string {
+  if (node == null) return '';
+  return (typeof node === 'string' ? node : node.text).trim();
+}
+
+// Extraction de CODE (locale-independante) passee a render via ctx.raw.
+const RAW = {
+  lit: (node: SyntaxNode | string | null | undefined) => litRaw(asText(node)),
+  name: (node: SyntaxNode | null | undefined) => asText(node),
+};
 
 /** Priorite par couche : plus c'est specifique, plus ca gagne et reclame en premier. */
 const LAYER_SPECIFICITY: Record<RuleLayer, number> = {
@@ -61,7 +79,7 @@ function makeContext(
     caps,
     source,
     lang,
-    t: interpolator,
+    raw: RAW,
     text: (n) => (n == null ? '' : n.text),
   };
 }
@@ -74,8 +92,12 @@ function makeContext(
  *     reclamee -> garantit "aucun sous-titre strictement inclus dans un autre".
  *  Un render() qui renvoie null = la regle renonce (on ne devine jamais).
  */
-export function createEngine(adapters: Partial<Record<LangId, LanguageAdapter>>): SubtitleEngine {
+export function createEngine(
+  adapters: Partial<Record<LangId, LanguageAdapter>>,
+  opts?: EngineOptions,
+): SubtitleEngine {
   const queryCache = new Map<string, Query | null>();
+  const translators = opts?.translators ?? makeTranslators();
 
   function getQuery(adapter: LanguageAdapter, rule: Rule): Query | null {
     const key = `${adapter.lang}:${rule.id}`;
@@ -114,10 +136,11 @@ export function createEngine(adapters: Partial<Record<LangId, LanguageAdapter>>)
     return out;
   }
 
-  function subtitle(source: string, lang: LangId): Subtitle[] {
+  function subtitle(source: string, lang: LangId, locale: LocaleId = 'fr'): Subtitle[] {
     const adapter = adapters[lang];
     if (!adapter) throw new Error(`[lexluthor] aucun adapter pour le langage "${lang}"`);
     if (!source.trim()) return [];
+    const translator = translators[locale];
 
     const root = adapter.parse(source);
     const candidates = collectCandidates(adapter, root, source);
@@ -135,11 +158,16 @@ export function createEngine(adapters: Partial<Record<LangId, LanguageAdapter>>)
     const accepted: Subtitle[] = [];
     for (const cand of candidates) {
       if (claimed.some((c) => intervalsOverlap(cand.claim, c))) continue;
-      const phrase = safeRender(cand.rule, cand.ctx);
-      if (phrase == null) continue;
-      const text = phrase.trim();
-      if (!text) continue;
+      // render() est LOCALE-INDEPENDANT : la decision de reclamer (null = renonce) est
+      // identique dans les 3 langues -> memes plages reclamees partout.
+      const message = safeRender(cand.rule, cand.ctx);
+      if (message == null) continue;
       claimed.push(cand.claim);
+      // La resolution Message -> texte depend de la locale. Cle absente (ES non traduit)
+      // -> on omet le sous-titre (VO), sans relacher la plage reclamee.
+      const resolved = safeTranslate(translator, message, cand.rule.id);
+      const text = resolved?.trim();
+      if (!text) continue;
       const range: SourceRange = rangeOf(cand.anchor);
       const sub: Subtitle = {
         text,
@@ -169,11 +197,23 @@ function safeBool(fn: () => boolean, ruleId: string): boolean {
   }
 }
 
-function safeRender(rule: Rule, ctx: RuleContext): string | null {
+function safeRender(rule: Rule, ctx: RuleContext): Message | null {
   try {
     return rule.render(ctx);
   } catch (err) {
     console.warn(`[lexluthor] render() a echoue pour "${rule.id}":`, err);
+    return null;
+  }
+}
+
+/** Resout un message ; cle absente (ES VO) ou erreur -> null (sous-titre omis). */
+function safeTranslate(translator: Translator, message: Message, ruleId: string): string | null {
+  try {
+    return translator.render(message);
+  } catch {
+    // Cle absente dans cette locale = VO attendu (ES non traduit). On n'alerte pas pour
+    // ne pas polluer ; la completude FR/EN est garantie par catalog-completeness.spec.
+    void ruleId;
     return null;
   }
 }

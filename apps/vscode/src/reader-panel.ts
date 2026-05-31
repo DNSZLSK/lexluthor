@@ -57,6 +57,12 @@ export class ReaderPanel {
           this.scrollTimer = setTimeout(() => this.sendScroll(e.textEditor), 50);
         }
       }),
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        // Changer la langue des sous-titres -> re-rendre (meme decoupage, autre texte).
+        if (e.affectsConfiguration('lexluthor.humanLanguage') && this.sourceEditor) {
+          this.sendRender(this.sourceEditor);
+        }
+      }),
     );
 
     this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
@@ -77,11 +83,13 @@ export class ReaderPanel {
     const doc = editor.document;
     const name = doc.uri.path.split('/').pop() ?? 'fichier';
     this.panel.title = `VOSTFR · ${name}`;
+    const locale = vscode.workspace.getConfiguration('lexluthor').get<string>('humanLanguage', 'fr');
     void this.panel.webview.postMessage({
       type: 'render',
       code: doc.getText(),
       languageId: doc.languageId,
       version: doc.version,
+      locale,
     });
   }
 

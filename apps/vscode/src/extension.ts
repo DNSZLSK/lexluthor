@@ -5,6 +5,7 @@ import { ReaderPanel } from './reader-panel';
 import { createStatusBar } from './status-bar';
 
 const DENSITIES = ['all', 'idiomatic', 'headers'] as const;
+const LANGUAGES = ['fr', 'en', 'es'] as const;
 
 export function activate(context: vscode.ExtensionContext): void {
   const diagnostics = vscode.languages.createDiagnosticCollection('lexluthor');
@@ -32,6 +33,7 @@ export function activate(context: vscode.ExtensionContext): void {
       void vscode.window.setStatusBarMessage(`LexLuthor : sous-titres en ligne ${next ? 'activés' : 'désactivés'}`, 2500);
     }),
     vscode.commands.registerCommand('lexluthor.cycleDensity', () => cycle('density', DENSITIES, 'idiomatic')),
+    vscode.commands.registerCommand('lexluthor.cycleLanguage', () => cycle('humanLanguage', LANGUAGES, 'fr')),
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration('lexluthor')) controller.onConfigChanged();
     }),

@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createJavaScriptAdapter } from '../src/adapters/javascript';
 import { createTypeScriptAdapter } from '../src/adapters/typescript';
-import { createEngine } from '../src/engine/engine';
+import { createEngine, type EngineOptions } from '../src/engine/engine';
 import type { LangId, SubtitleEngine } from '../src/engine/types';
 
 export const WASM_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'wasm');
@@ -26,17 +26,18 @@ export async function loadLanguage(name: keyof typeof GRAMMAR_FILES): Promise<La
   return Language.load(join(WASM_DIR, GRAMMAR_FILES[name]!));
 }
 
+/** Construit un moteur frais (translators par defaut, ou injectes via opts). */
+export async function buildEngine(opts?: EngineOptions): Promise<SubtitleEngine> {
+  const [jsLang, tsLang] = await Promise.all([loadLanguage('javascript'), loadLanguage('typescript')]);
+  return createEngine(
+    { javascript: createJavaScriptAdapter(jsLang), typescript: createTypeScriptAdapter(tsLang) },
+    opts,
+  );
+}
+
 let enginePromise: Promise<SubtitleEngine> | null = null;
 export function getEngine(): Promise<SubtitleEngine> {
-  if (!enginePromise) {
-    enginePromise = (async () => {
-      const [jsLang, tsLang] = await Promise.all([loadLanguage('javascript'), loadLanguage('typescript')]);
-      return createEngine({
-        javascript: createJavaScriptAdapter(jsLang),
-        typescript: createTypeScriptAdapter(tsLang),
-      });
-    })();
-  }
+  if (!enginePromise) enginePromise = buildEngine();
   return enginePromise;
 }
 

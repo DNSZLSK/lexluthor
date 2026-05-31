@@ -2,6 +2,7 @@
 // Rendus en ROUGE (severity 'alert'). On vise des motifs peu ambigus pour eviter
 // la fatigue d'alerte ; les cas dependant du flux de donnees viendront plus tard.
 import type { Rule } from '../../engine/types';
+import { msg } from '../../engine/message';
 
 export const signalRules: Rule[] = [
   {
@@ -9,10 +10,19 @@ export const signalRules: Rule[] = [
     layer: 'signal',
     severity: 'alert',
     query: '(call_expression function: (identifier) @_f (#eq? @_f "eval")) @site',
-    render: () => '⚠ Exécute du code arbitraire (eval), vecteur d’attaque courant',
+    render: () => msg('signal.eval'),
     doc: {
       summary: 'Appel a eval().',
-      examples: [{ code: 'eval(payload);', subtitle: '⚠ Exécute du code arbitraire (eval), vecteur d’attaque courant' }],
+      examples: [
+        {
+          code: 'eval(payload);',
+          key: 'signal.eval',
+          expect: {
+            fr: '⚠ Exécute du code arbitraire (eval), vecteur d’attaque courant',
+            en: '⚠ Runs arbitrary code (eval), a common attack vector',
+          },
+        },
+      ],
     },
   },
 
@@ -21,10 +31,19 @@ export const signalRules: Rule[] = [
     layer: 'signal',
     severity: 'alert',
     query: '(call_expression function: (identifier) @_f (#eq? @_f "Function")) @site',
-    render: () => '⚠ Construit et exécute du code à la volée (Function)',
+    render: () => msg('signal.functionCtor'),
     doc: {
       summary: 'Constructeur Function appele comme fonction.',
-      examples: [{ code: 'Function("return process")();', subtitle: '⚠ Construit et exécute du code à la volée (Function)' }],
+      examples: [
+        {
+          code: 'Function("return process")();',
+          key: 'signal.functionCtor',
+          expect: {
+            fr: '⚠ Construit et exécute du code à la volée (Function)',
+            en: '⚠ Builds and runs code on the fly (Function)',
+          },
+        },
+      ],
     },
   },
 
@@ -33,10 +52,19 @@ export const signalRules: Rule[] = [
     layer: 'signal',
     severity: 'alert',
     query: '(new_expression constructor: (identifier) @_f (#eq? @_f "Function")) @site',
-    render: () => '⚠ Construit et exécute du code à la volée (Function)',
+    render: () => msg('signal.functionCtor'),
     doc: {
       summary: 'Constructeur Function via new.',
-      examples: [{ code: 'const f = new Function("x", "return x");', subtitle: '⚠ Construit et exécute du code à la volée (Function)' }],
+      examples: [
+        {
+          code: 'const f = new Function("x", "return x");',
+          key: 'signal.functionCtor',
+          expect: {
+            fr: '⚠ Construit et exécute du code à la volée (Function)',
+            en: '⚠ Builds and runs code on the fly (Function)',
+          },
+        },
+      ],
     },
   },
 
@@ -46,14 +74,18 @@ export const signalRules: Rule[] = [
     severity: 'alert',
     query:
       '(call_expression function: (member_expression object: (identifier) @_o property: (property_identifier) @_p) arguments: (arguments (_) (string) @enc) (#eq? @_o "Buffer") (#eq? @_p "from")) @site',
-    test: (_node, ctx) => ctx.t.lit(ctx.caps.enc) === 'base64',
-    render: () => '⚠ Décode des données base64 (souvent pour dissimuler une charge utile)',
+    test: (_node, ctx) => ctx.raw.lit(ctx.caps.enc) === 'base64',
+    render: () => msg('signal.base64'),
     doc: {
       summary: 'Decodage base64 via Buffer.from(x, "base64").',
       examples: [
         {
           code: "const s = Buffer.from(data, 'base64').toString();",
-          subtitle: '⚠ Décode des données base64 (souvent pour dissimuler une charge utile)',
+          key: 'signal.base64',
+          expect: {
+            fr: '⚠ Décode des données base64 (souvent pour dissimuler une charge utile)',
+            en: '⚠ Decodes base64 data (often used to hide a payload)',
+          },
         },
       ],
     },
@@ -66,11 +98,18 @@ export const signalRules: Rule[] = [
     // Appel via acces membre dynamique EN CHAINE (obj[a][b](...)) : motif
     // d'obscurcissement frequent (ex: globalThis['pro'+'cess']['exit']()).
     query: '(call_expression function: (subscript_expression object: (subscript_expression))) @site',
-    render: () => '⚠ Appel via accès dynamique en chaîne (obscurcissement possible)',
+    render: () => msg('signal.dynamicCall'),
     doc: {
       summary: 'Appel sur acces membre calcule imbrique.',
       examples: [
-        { code: "globalThis['pro' + 'cess']['exit']();", subtitle: '⚠ Appel via accès dynamique en chaîne (obscurcissement possible)' },
+        {
+          code: "globalThis['pro' + 'cess']['exit']();",
+          key: 'signal.dynamicCall',
+          expect: {
+            fr: '⚠ Appel via accès dynamique en chaîne (obscurcissement possible)',
+            en: '⚠ Call via chained dynamic access (possible obfuscation)',
+          },
+        },
       ],
     },
   },
@@ -81,12 +120,19 @@ export const signalRules: Rule[] = [
     severity: 'alert',
     query:
       '(call_expression function: (identifier) @_r arguments: (arguments (string) @mod) (#eq? @_r "require")) @site',
-    test: (_node, ctx) => ctx.t.lit(ctx.caps.mod) === 'child_process',
-    render: () => '⚠ Accès aux commandes système (child_process)',
+    test: (_node, ctx) => ctx.raw.lit(ctx.caps.mod) === 'child_process',
+    render: () => msg('signal.childProcess'),
     doc: {
-      summary: "Import de child_process (execution de commandes systeme).",
+      summary: 'Import de child_process (execution de commandes systeme).',
       examples: [
-        { code: "const cp = require('child_process');", subtitle: '⚠ Accès aux commandes système (child_process)' },
+        {
+          code: "const cp = require('child_process');",
+          key: 'signal.childProcess',
+          expect: {
+            fr: '⚠ Accès aux commandes système (child_process)',
+            en: '⚠ Access to system commands (child_process)',
+          },
+        },
       ],
     },
   },
