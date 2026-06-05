@@ -29,6 +29,9 @@ const NEGATE_OP: Readonly<Record<string, string>> = {
 const MAX_CLAUSES = 3; // au-dela d'une chaine de 3, on tronque (« … »)
 const MAX_DEPTH = 2; // imbrication max avant repli litteral fidele
 
+/** Operateurs d'egalite ou cherche le motif typeof X (=== | !== | == | !=) 'T'. */
+const TYPEOF_EQ: ReadonlySet<string> = new Set(['===', '==', '!==', '!=']);
+
 function unwrap(node: SyntaxNode): SyntaxNode {
   return node.type === 'parenthesized_expression' ? unwrap(node.namedChildren[0] ?? node) : node;
 }
@@ -90,18 +93,39 @@ function classifyCall(node: SyntaxNode): MsgParams | null {
   return null;
 }
 
-/** Operande « verite » : identifiant / acces membre simple, lu « X existe ». */
-function classifyTruthy(node: SyntaxNode): MsgParams | null {
+/** Lit un identifiant / acces membre simple en {mots, glose, brut}, ou null. */
+function readSubject(node: SyntaxNode): { words: string; glossed: number; text: string } | null {
   if (node.type === 'identifier') {
-    return { kind: 'truthy', words: splitIdentifier(node.text).join(' '), glossed: isGlossedHead(node.text) ? 1 : 0, text: node.text };
+    return { words: splitIdentifier(node.text).join(' '), glossed: isGlossedHead(node.text) ? 1 : 0, text: node.text };
   }
   if (node.type === 'member_expression') {
     const words = memberWords(node);
-    if (words) {
-      return { kind: 'truthy', words: words.join(' '), glossed: isGlossedHead(words[words.length - 1]!) ? 1 : 0, text: node.text };
-    }
+    if (words) return { words: words.join(' '), glossed: isGlossedHead(words[words.length - 1]!) ? 1 : 0, text: node.text };
   }
   return null;
+}
+
+/** Operande « verite » : identifiant / acces membre simple, lu « X existe ». */
+function classifyTruthy(node: SyntaxNode): MsgParams | null {
+  const s = readSubject(node);
+  return s ? { kind: 'truthy', ...s } : null;
+}
+
+const isTypeof = (n: SyntaxNode | null): boolean =>
+  !!n && n.type === 'unary_expression' && n.childForFieldName('operator')?.text === 'typeof';
+
+/** Motif `typeof X (=== | !==) 'T'` -> « X est / n'est pas <type> ». Les deux ordres. */
+function classifyTypeof(node: SyntaxNode, op: string): MsgParams | null {
+  if (!TYPEOF_EQ.has(op)) return null;
+  const l = node.childForFieldName('left');
+  const r = node.childForFieldName('right');
+  const tn = isTypeof(l) ? l : isTypeof(r) ? r : null;
+  const litNode = tn === l ? r : l;
+  if (!tn || litNode?.type !== 'string') return null;
+  const arg = tn.childForFieldName('argument');
+  const subj = arg ? readSubject(unwrap(arg)) : null;
+  if (!subj) return null;
+  return { kind: 'typeofIs', ...subj, type: litNode.text.slice(1, -1), neg: op === '!==' || op === '!=' ? 1 : 0 };
 }
 
 /** Aplatit une chaine &&/|| de meme operateur, classe chaque clause (cap MAX_CLAUSES). */
@@ -130,6 +154,8 @@ function classifyNode(raw: SyntaxNode | null | undefined, depth: number, boolCtx
 
   if (node.type === 'binary_expression') {
     const op = node.childForFieldName('operator')?.text ?? '';
+    const typeofIs = classifyTypeof(node, op);
+    if (typeofIs) return typeofIs;
     if (COMPARISON_OPS.has(op)) {
       const left = simpleOperand(node.childForFieldName('left'));
       const right = simpleOperand(node.childForFieldName('right'));

@@ -88,6 +88,15 @@ function readVerb(id: string): string | null {
   return null;
 }
 
+/** Nombre grammatical de la tete (1 ou 2), pour accorder le verbe (« existe »/« existent »). */
+function numberOf(wordsStr: string): number {
+  const words = wordsStr ? wordsStr.split(' ').filter(Boolean) : [];
+  const last = words[words.length - 1];
+  if (!last) return 1;
+  const head = lookupRaw(GLOSSARY_FR, last);
+  return head.plural || head.entry.number === 'plural' ? 2 : 1;
+}
+
 export function makeFrHelpers(sub: (key: string) => string): LocaleHelpers {
   return {
     locale: 'fr',
@@ -95,6 +104,7 @@ export function makeFrHelpers(sub: (key: string) => string): LocaleHelpers {
     truncate,
     elide,
     plural: (n, one, many) => (n <= 1 ? one : many),
+    numberOf,
     nounPhrase,
     demonstrative,
     noneOf,

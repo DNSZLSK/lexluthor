@@ -58,6 +58,11 @@ export const compositionalRules: Rule[] = [
         { code: 'if (!user || !token) { fail(); }', key: 'cond.if', expect: { fr: "Si l'utilisateur n'existe pas ou le jeton n'existe pas :", en: "If the user doesn't exist or the token doesn't exist:" } },
         { code: 'if (active && !(count === 0)) { go(); }', key: 'cond.if', expect: { fr: 'Si active existe et count ne vaut pas 0 :', en: 'If active exists and count does not equal 0:' } },
         { code: 'if (a && b && c && d) { go(); }', key: 'cond.if', expect: { fr: 'Si a existe et b existe et c existe et … :', en: 'If a exists and b exists and c exists and …:' } },
+        // typeof lisible + accord du verbe d'existence au pluriel.
+        { code: "if (typeof x === 'string') { go(); }", key: 'cond.if', expect: { fr: 'Si x est une chaîne :', en: 'If x is a string:' } },
+        { code: "if (typeof user !== 'object') { fail(); }", key: 'cond.if', expect: { fr: "Si l'utilisateur n'est pas un objet :", en: "If the user isn't an object:" } },
+        { code: "if (x && typeof x === 'number') { go(); }", key: 'cond.if', expect: { fr: 'Si x existe et x est un nombre :', en: 'If x exists and x is a number:' } },
+        { code: 'if (items && results) { go(); }', key: 'cond.if', expect: { fr: 'Si les éléments existent et les résultats existent :', en: 'If the items exist and the results exist:' } },
       ],
     },
   },

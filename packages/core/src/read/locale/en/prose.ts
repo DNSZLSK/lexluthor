@@ -64,6 +64,15 @@ function readVerb(id: string): string | null {
   return null;
 }
 
+/** Grammatical number of the head (1 or 2), to agree the verb (« exists »/« exist »). */
+function numberOf(wordsStr: string): number {
+  const words = wordsStr ? wordsStr.split(' ').filter(Boolean) : [];
+  const last = words[words.length - 1];
+  if (!last) return 1;
+  const head = lookupRaw(GLOSSARY_EN, last);
+  return head.plural || head.entry.number === 'plural' ? 2 : 1;
+}
+
 export function makeEnHelpers(sub: (key: string) => string): LocaleHelpers {
   return {
     locale: 'en',
@@ -71,6 +80,7 @@ export function makeEnHelpers(sub: (key: string) => string): LocaleHelpers {
     truncate,
     elide: (article, word) => `${article} ${word}`, // no elision in English
     plural: (n, one, many) => (n <= 1 ? one : many),
+    numberOf,
     nounPhrase,
     demonstrative,
     noneOf,

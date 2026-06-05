@@ -76,6 +76,15 @@ function readVerb(id: string): string | null {
   return null;
 }
 
+/** Numero gramatical de la cabeza (1 o 2), para concordar el verbo. */
+function numberOf(wordsStr: string): number {
+  const words = wordsStr ? wordsStr.split(' ').filter(Boolean) : [];
+  const last = words[words.length - 1];
+  if (!last) return 1;
+  const head = lookupRaw(GLOSSARY_ES, last);
+  return head.plural || head.entry.number === 'plural' ? 2 : 1;
+}
+
 export function makeEsHelpers(sub: (key: string) => string): LocaleHelpers {
   return {
     locale: 'es',
@@ -83,6 +92,7 @@ export function makeEsHelpers(sub: (key: string) => string): LocaleHelpers {
     truncate,
     elide: (article, word) => `${article} ${word}`,
     plural: (n, one, many) => (n <= 1 ? one : many),
+    numberOf,
     nounPhrase,
     demonstrative,
     noneOf,

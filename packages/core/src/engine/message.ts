@@ -38,6 +38,8 @@ export interface LocaleHelpers {
   // Grammaire par-locale.
   elide(article: string, word: string): string;
   plural(n: number, one: string, many: string): string;
+  /** Nombre grammatical de la tete du groupe nominal (1 ou 2), pour accorder un verbe. */
+  numberOf(words: string): number;
   // Reader de prose par-locale. `words` = mots de code joints par une espace
   // (sortie de splitIdentifier), `id` = identifiant brut, `op`/`token` = jeton de code.
   nounPhrase(words: string, article?: ArticleKind, opts?: { singular?: boolean }): string;

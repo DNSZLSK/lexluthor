@@ -4,6 +4,10 @@ import type { Catalog, LocaleHelpers, MsgParams } from '../../engine/message';
 
 const S = (v: unknown): string => String(v ?? '');
 const srcEn = (src: unknown): string => (src === 'array' ? 'an array' : 'an object');
+const TYPEOF_EN: Readonly<Record<string, string>> = {
+  string: 'a string', number: 'a number', boolean: 'a boolean', object: 'an object',
+  function: 'a function', undefined: 'undefined', symbol: 'a symbol', bigint: 'a bigint',
+};
 
 function subject(p: MsgParams, h: LocaleHelpers): string {
   return p.glossed ? h.nounPhrase(S(p.subjectWords), 'def') : S(p.raw);
@@ -24,8 +28,14 @@ function condInner(p: MsgParams, h: LocaleHelpers, max: number, depth = 0): stri
     }
     case 'not':
       return negate((p.inner ?? {}) as MsgParams, h, max, depth + 1);
-    case 'truthy':
-      return `${p.glossed ? h.nounPhrase(S(p.words), 'def') : S(p.text)} exists`;
+    case 'truthy': {
+      const subj = p.glossed ? h.nounPhrase(S(p.words), 'def') : S(p.text);
+      return `${subj} ${h.plural(p.glossed ? h.numberOf(S(p.words)) : 1, 'exists', 'exist')}`;
+    }
+    case 'typeofIs': {
+      const subj = p.glossed ? h.nounPhrase(S(p.words), 'def') : S(p.text);
+      return `${subj} ${p.neg ? "isn't" : 'is'} ${TYPEOF_EN[S(p.type)] ?? `of type ${S(p.type)}`}`;
+    }
     case 'compare':
       return `${S(p.left)} ${h.comparison(S(p.op)) ?? S(p.op)} ${S(p.right)}`;
     case 'membership':
@@ -46,8 +56,10 @@ function condInner(p: MsgParams, h: LocaleHelpers, max: number, depth = 0): stri
 /** Negation of a sub-condition (comparisons are already folded upstream). */
 function negate(inner: MsgParams, h: LocaleHelpers, max: number, depth: number): string {
   switch (inner.kind) {
-    case 'truthy':
-      return `${inner.glossed ? h.nounPhrase(S(inner.words), 'def') : S(inner.text)} doesn't exist`;
+    case 'truthy': {
+      const subj = inner.glossed ? h.nounPhrase(S(inner.words), 'def') : S(inner.text);
+      return `${subj} ${h.plural(inner.glossed ? h.numberOf(S(inner.words)) : 1, "doesn't exist", "don't exist")}`;
+    }
     case 'is':
       return `${h.nounPhrase(S(inner.subj), 'def')} isn't ${h.adjective(S(inner.adj)) ?? S(inner.adj)}`;
     case 'membership':
