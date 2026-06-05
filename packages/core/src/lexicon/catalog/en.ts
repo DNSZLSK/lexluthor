@@ -9,8 +9,23 @@ function subject(p: MsgParams, h: LocaleHelpers): string {
   return p.glossed ? h.nounPhrase(S(p.subjectWords), 'def') : S(p.raw);
 }
 
-function condInner(p: MsgParams, h: LocaleHelpers, max: number): string {
+function condInner(p: MsgParams, h: LocaleHelpers, max: number, depth = 0): string {
   switch (p.kind) {
+    case 'logical': {
+      const parts = (p.parts as readonly MsgParams[] | undefined) ?? [];
+      const join = p.op === '||' ? ' or ' : ' and ';
+      const body = parts
+        .map((part) => {
+          const s = condInner(part, h, max, depth + 1);
+          return part.kind === 'logical' && part.op !== p.op ? `(${s})` : s; // disambiguate && / ||
+        })
+        .join(join);
+      return p.more ? `${body}${p.op === '||' ? ' or …' : ' and …'}` : body;
+    }
+    case 'not':
+      return negate((p.inner ?? {}) as MsgParams, h, max, depth + 1);
+    case 'truthy':
+      return `${p.glossed ? h.nounPhrase(S(p.words), 'def') : S(p.text)} exists`;
     case 'compare':
       return `${S(p.left)} ${h.comparison(S(p.op)) ?? S(p.op)} ${S(p.right)}`;
     case 'membership':
@@ -25,6 +40,20 @@ function condInner(p: MsgParams, h: LocaleHelpers, max: number): string {
       return `${h.nounPhrase(S(p.subj), 'def')} ${p.mood === 'should' ? 'should' : 'can'} ${h.infinitive(S(p.inf)) ?? S(p.inf)}`;
     default:
       return h.truncate(S(p.text), max);
+  }
+}
+
+/** Negation of a sub-condition (comparisons are already folded upstream). */
+function negate(inner: MsgParams, h: LocaleHelpers, max: number, depth: number): string {
+  switch (inner.kind) {
+    case 'truthy':
+      return `${inner.glossed ? h.nounPhrase(S(inner.words), 'def') : S(inner.text)} doesn't exist`;
+    case 'is':
+      return `${h.nounPhrase(S(inner.subj), 'def')} isn't ${h.adjective(S(inner.adj)) ?? S(inner.adj)}`;
+    case 'membership':
+      return `the collection doesn't contain ${inner.what ? h.demonstrative(S(inner.what)) : 'this item'}`;
+    default:
+      return h.truncate(`it's false that ${condInner(inner, h, max, depth)}`, max);
   }
 }
 

@@ -3,14 +3,14 @@
 import type { Catalog, LocaleHelpers, LocaleId, Message, MsgParams, Translator } from './message';
 
 // Acces « propre » : evite les cles heritees (constructor, toString…) d'un objet litteral.
-function own<T>(dict: Record<string, T>, key: string): T | undefined {
+function own<T>(dict: { readonly [k: string]: T }, key: string): T | undefined {
   return Object.hasOwn(dict, key) ? dict[key] : undefined;
 }
 
 /** Remplace les `{param}` d'un gabarit par leur valeur. Param absent -> laisse tel quel. */
 function format(template: string, params: MsgParams): string {
   return template.replace(/\{(\w+)\}/g, (whole, name: string) => {
-    const v = own(params as Record<string, string | number>, name);
+    const v = own(params, name);
     return v == null ? whole : String(v);
   });
 }

@@ -10,8 +10,23 @@ function subject(p: MsgParams, h: LocaleHelpers): string {
   return p.glossed ? h.nounPhrase(S(p.subjectWords), 'def') : S(p.raw);
 }
 
-function condInner(p: MsgParams, h: LocaleHelpers, max: number): string {
+function condInner(p: MsgParams, h: LocaleHelpers, max: number, depth = 0): string {
   switch (p.kind) {
+    case 'logical': {
+      const parts = (p.parts as readonly MsgParams[] | undefined) ?? [];
+      const join = p.op === '||' ? ' ou ' : ' et ';
+      const body = parts
+        .map((part) => {
+          const s = condInner(part, h, max, depth + 1);
+          return part.kind === 'logical' && part.op !== p.op ? `(${s})` : s; // desambigue && / ||
+        })
+        .join(join);
+      return p.more ? `${body}${p.op === '||' ? ' ou …' : ' et …'}` : body;
+    }
+    case 'not':
+      return negate((p.inner ?? {}) as MsgParams, h, max, depth + 1);
+    case 'truthy':
+      return `${p.glossed ? h.nounPhrase(S(p.words), 'def') : S(p.text)} existe`;
     case 'compare':
       return `${S(p.left)} ${h.comparison(S(p.op)) ?? S(p.op)} ${S(p.right)}`;
     case 'membership':
@@ -26,6 +41,20 @@ function condInner(p: MsgParams, h: LocaleHelpers, max: number): string {
       return `${h.nounPhrase(S(p.subj), 'def')} ${p.mood === 'should' ? 'devrait' : 'peut'} ${h.infinitive(S(p.inf)) ?? S(p.inf)}`;
     default:
       return h.truncate(S(p.text), max);
+  }
+}
+
+/** Negation d'une sous-condition (les comparaisons sont deja pliees en amont). */
+function negate(inner: MsgParams, h: LocaleHelpers, max: number, depth: number): string {
+  switch (inner.kind) {
+    case 'truthy':
+      return `${inner.glossed ? h.nounPhrase(S(inner.words), 'def') : S(inner.text)} n'existe pas`;
+    case 'is':
+      return `${h.nounPhrase(S(inner.subj), 'def')} n'est pas ${h.adjective(S(inner.adj)) ?? S(inner.adj)}`;
+    case 'membership':
+      return `la collection ne contient pas ${inner.what ? h.demonstrative(S(inner.what)) : 'cet élément'}`;
+    default:
+      return h.truncate(`il est faux que ${condInner(inner, h, max, depth)}`, max);
   }
 }
 

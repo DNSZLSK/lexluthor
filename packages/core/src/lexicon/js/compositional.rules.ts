@@ -52,6 +52,12 @@ export const compositionalRules: Rule[] = [
         { code: 'if (list.includes(item)) { use(item); }', key: 'cond.if', expect: { fr: 'Si la collection contient cet élément :', en: 'If the collection contains this item:' } },
         { code: 'if (user.isValid()) { ok(); }', key: 'cond.if', expect: { fr: "Si l'utilisateur est valide :", en: 'If the user is valid:' } },
         { code: 'if (items.some((x) => x.ok)) { go(); }', key: 'cond.if', expect: { fr: 'Si au moins un élément correspond :', en: 'If at least one item matches:' } },
+        // Conditions composees (&&, ||, !) : composition equilibree (cap a 3 clauses, negation pliee).
+        { code: 'if (count > 0 && status === 200) { go(); }', key: 'cond.if', expect: { fr: 'Si count est supérieur à 0 et status vaut 200 :', en: 'If count is greater than 0 and status equals 200:' } },
+        { code: 'if (user && token) { go(); }', key: 'cond.if', expect: { fr: "Si l'utilisateur existe et le jeton existe :", en: 'If the user exists and the token exists:' } },
+        { code: 'if (!user || !token) { fail(); }', key: 'cond.if', expect: { fr: "Si l'utilisateur n'existe pas ou le jeton n'existe pas :", en: "If the user doesn't exist or the token doesn't exist:" } },
+        { code: 'if (active && !(count === 0)) { go(); }', key: 'cond.if', expect: { fr: 'Si active existe et count ne vaut pas 0 :', en: 'If active exists and count does not equal 0:' } },
+        { code: 'if (a && b && c && d) { go(); }', key: 'cond.if', expect: { fr: 'Si a existe et b existe et c existe et … :', en: 'If a exists and b exists and c exists and …:' } },
       ],
     },
   },
@@ -106,7 +112,7 @@ export const compositionalRules: Rule[] = [
     doc: {
       summary: 'Boucle while : on lit les appels prédicat/appartenance, littéral sinon.',
       examples: [
-        { code: 'while (running) { tick(); }', key: 'cond.while', expect: { fr: 'Tant que running :', en: 'While running:' } },
+        { code: 'while (running) { tick(); }', key: 'cond.while', expect: { fr: 'Tant que running existe :', en: 'While running exists:' } },
         { code: 'while (queue.has(next)) { step(); }', key: 'cond.while', expect: { fr: 'Tant que la collection contient cet élément :', en: 'While the collection contains this item:' } },
       ],
     },
@@ -147,7 +153,7 @@ export const compositionalRules: Rule[] = [
     id: 'js.switch',
     layer: 'compositional',
     query: '(switch_statement value: (parenthesized_expression (_) @disc)) @site',
-    render: (ctx) => msg('cond.switch', classifyCondition(ctx.caps.disc) ?? { kind: 'literal', text: ctx.text(ctx.caps.disc) }),
+    render: (ctx) => msg('cond.switch', classifyCondition(ctx.caps.disc, false) ?? { kind: 'literal', text: ctx.text(ctx.caps.disc) }),
     doc: {
       summary: 'Aiguillage switch.',
       examples: [

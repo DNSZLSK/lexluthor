@@ -5,8 +5,14 @@
 
 export type LocaleId = 'fr' | 'en' | 'es';
 
-/** Params d'un message : TOUJOURS du code (noms, nombres, sous-cles), jamais de prose. */
-export type MsgParams = Record<string, string | number>;
+/** Valeur de param : du CODE (nom, nombre, sous-cle) ou, pour les structures
+ * composees (conditions booleennes), des sous-params imbriques (arbre). Jamais de prose. */
+export type MsgValue = string | number | MsgParams | readonly MsgParams[];
+
+/** Params d'un message : TOUJOURS du code, jamais de prose. Plat ou imbrique. */
+export interface MsgParams {
+  readonly [key: string]: MsgValue;
+}
 
 export interface Message {
   readonly key: string;
