@@ -6,9 +6,10 @@ export type Gender = 'm' | 'f';
 
 /** Une entree de glossaire : le mot traduit + son genre (FR/ES) + pluriel irregulier. */
 export interface NounEntry {
-  readonly word: string;
+  readonly word: string; // forme SINGULIERE canonique
   readonly gender?: Gender; // absent en EN (pas de genre)
   readonly plural?: string; // pluriel irregulier (sinon word + "s" cote FR/EN)
+  readonly number?: 'plural'; // nom intrinsequement pluriel/massif (data, options…) : pluriel par defaut
 }
 
 /** Entree de verbe CANONIQUE (FR = reference) : porte la valence + le cas, partages. */

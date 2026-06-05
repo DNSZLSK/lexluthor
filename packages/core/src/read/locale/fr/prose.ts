@@ -16,7 +16,8 @@ function elideQue(s: string): string {
 }
 
 function pluralOf(entry: { word: string; plural?: string }): string {
-  return entry.plural ?? `${entry.word}s`;
+  if (entry.plural) return entry.plural;
+  return /[sxz]$/i.test(entry.word) ? entry.word : `${entry.word}s`; // pas de double-s (« kpis » -> « kpis »)
 }
 
 /** Groupe nominal : tete = dernier mot, complements en « de » (ordre EN->FR). */
@@ -24,14 +25,14 @@ function nounPhrase(wordsStr: string, article: ArticleKind = 'none', opts: { sin
   const words = wordsStr ? wordsStr.split(' ').filter(Boolean) : [];
   if (words.length === 0) return '';
   const head = lookupRaw(GLOSSARY_FR, words[words.length - 1]!);
-  const isPlural = head.plural && !opts.singular;
+  const isPlural = (head.plural || head.entry.number === 'plural') && !opts.singular;
   const headStr = isPlural ? pluralOf(head.entry) : head.entry.word;
 
   let phrase: string;
   if (article === 'def') {
     phrase = isPlural ? `les ${headStr}` : elide(head.entry.gender === 'f' ? 'la' : 'le', headStr);
   } else if (article === 'indef') {
-    phrase = `${head.entry.gender === 'f' ? 'une' : 'un'} ${head.entry.word}`; // indefini = singulier
+    phrase = isPlural ? `des ${headStr}` : `${head.entry.gender === 'f' ? 'une' : 'un'} ${head.entry.word}`;
   } else {
     phrase = headStr;
   }
@@ -77,6 +78,7 @@ function readVerb(id: string): string | null {
     let rest = words.slice(1);
     const byIdx = rest.indexOf('by'); // getUserById -> « recupere l'utilisateur »
     if (byIdx >= 0) rest = rest.slice(0, byIdx);
+    if (rest[rest.length - 1] === 'sync' || rest[rest.length - 1] === 'async') rest = rest.slice(0, -1); // execSync -> « execute »
     return verbPhrase(words[0]!, rest.join(' '), meta.valence, meta.pattern ?? 'plain').trim();
   }
   // Convention *Of : claimOf -> « determine la revendication ».

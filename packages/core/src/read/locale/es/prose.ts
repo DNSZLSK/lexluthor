@@ -8,6 +8,7 @@ import { WORDS_ES } from './words';
 
 function pluralOf(entry: { word: string; plural?: string }): string {
   if (entry.plural) return entry.plural;
+  if (/s$/i.test(entry.word)) return entry.word; // ya plural (« kpis ») -> sin doble-s
   return /[aeiouáéíóú]$/i.test(entry.word) ? `${entry.word}s` : `${entry.word}es`;
 }
 
@@ -15,7 +16,7 @@ function nounPhrase(wordsStr: string, article: ArticleKind = 'none', opts: { sin
   const words = wordsStr ? wordsStr.split(' ').filter(Boolean) : [];
   if (words.length === 0) return '';
   const head = lookupRaw(GLOSSARY_ES, words[words.length - 1]!);
-  const isPlural = head.plural && !opts.singular;
+  const isPlural = (head.plural || head.entry.number === 'plural') && !opts.singular;
   const fem = head.entry.gender === 'f';
   const headStr = isPlural ? pluralOf(head.entry) : head.entry.word;
 
@@ -23,7 +24,7 @@ function nounPhrase(wordsStr: string, article: ArticleKind = 'none', opts: { sin
   if (article === 'def') {
     phrase = isPlural ? `${fem ? 'las' : 'los'} ${headStr}` : `${fem ? 'la' : 'el'} ${headStr}`;
   } else if (article === 'indef') {
-    phrase = `${fem ? 'una' : 'un'} ${head.entry.word}`;
+    phrase = isPlural ? `${fem ? 'unas' : 'unos'} ${headStr}` : `${fem ? 'una' : 'un'} ${head.entry.word}`;
   } else {
     phrase = headStr;
   }
@@ -66,6 +67,7 @@ function readVerb(id: string): string | null {
     let rest = words.slice(1);
     const byIdx = rest.indexOf('by');
     if (byIdx >= 0) rest = rest.slice(0, byIdx);
+    if (rest[rest.length - 1] === 'sync' || rest[rest.length - 1] === 'async') rest = rest.slice(0, -1); // execSync -> « ejecuta »
     return verbPhrase(words[0]!, rest.join(' '), meta.valence, meta.pattern).trim();
   }
   if (words.length >= 2 && words[words.length - 1] === 'of') {
