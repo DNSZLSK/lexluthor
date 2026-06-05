@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { extname, join, resolve } from 'node:path';
 import {
   analyzeCoverage,
   createEngine,
@@ -7,12 +7,15 @@ import {
   createTypeScriptAdapter,
   emptyRepoReport,
   mergeReport,
+  type LangId,
   type LanguageAdapter,
+  type LocaleId,
   type SubtitleEngine,
 } from '@lexluthor/core';
 import { createNodeWasmProvider, loadGrammarFile } from './wasm-node-provider';
 import { walk } from './scan';
 import { printJson, printReport } from './report';
+import { renderRead } from './read-view';
 
 interface Flags {
   json: boolean;
@@ -20,17 +23,21 @@ interface Flags {
   wasmDir?: string;
   maxBytes: number;
   maxLines: number;
+  locale: LocaleId;
 }
 
 function parseFlags(args: readonly string[]): Flags {
-  const f: Flags = { json: false, top: 15, maxBytes: 512 * 1024, maxLines: 5000 };
+  const f: Flags = { json: false, top: 15, maxBytes: 512 * 1024, maxLines: 5000, locale: 'fr' };
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--json') f.json = true;
     else if (a === '--top') f.top = Math.max(1, Number(args[++i]) || 15);
     else if (a === '--max-bytes') f.maxBytes = Number(args[++i]) || f.maxBytes;
     else if (a === '--max-lines') f.maxLines = Number(args[++i]) || f.maxLines;
-    else if (a === '--wasm-dir') {
+    else if (a === '--locale') {
+      const v = args[++i];
+      if (v === 'fr' || v === 'en' || v === 'es') f.locale = v;
+    } else if (a === '--wasm-dir') {
       const v = args[++i];
       if (v) f.wasmDir = v;
     }
@@ -52,35 +59,36 @@ function resolveWasmDir(flag: string | undefined): string {
   );
 }
 
-const USAGE = `lexluthor — sous-titreur de code (mode curation)
+const USAGE = `lexluthor — sous-titreur de code déterministe (VOSTFR du code)
 
 Usage :
-  lexluthor scan <dossier> [options]
+  lexluthor read <fichier> [--locale fr|en|es]   lit un fichier : code + sous-titres entrelacés
+  lexluthor scan <dossier> [options]             diagnostic de couverture (curation)
 
 Options :
-  --json              sortie JSON (clés stables)
-  --top <N>           taille des listes (défaut 15)
+  --locale fr|en|es   langue des sous-titres (défaut fr)
+  --json              scan : sortie JSON (clés stables)
+  --top <N>           scan : taille des listes (défaut 15)
   --wasm-dir <chemin> dossier des grammaires .wasm
-  --max-bytes <N>     ignore les fichiers plus gros (défaut 524288)
-  --max-lines <N>     ignore les fichiers plus longs (défaut 5000)
+  --max-bytes <N>     scan : ignore les fichiers plus gros (défaut 524288)
+  --max-lines <N>     scan : ignore les fichiers plus longs (défaut 5000)
 
-Le scan fait tourner le moteur DÉTERMINISTE en diagnostic et classe, par impact,
-ce qu'il faut ajouter au dictionnaire (mots, verbes, règles). Aucune IA, offline.`;
+Moteur DÉTERMINISTE, offline, sans IA.`;
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
-  if (argv[0] !== 'scan') {
+  const cmd = argv[0];
+  if (cmd !== 'scan' && cmd !== 'read') {
     process.stdout.write(USAGE + '\n');
-    process.exit(argv[0] ? 1 : 0);
+    process.exit(cmd ? 1 : 0);
   }
-  const dirArg = argv[1];
-  if (!dirArg || dirArg.startsWith('--')) {
+  const targetArg = argv[1];
+  if (!targetArg || targetArg.startsWith('--')) {
     process.stdout.write(USAGE + '\n');
     process.exit(1);
   }
   const flags = parseFlags(argv.slice(2));
   const wasmDir = resolveWasmDir(flags.wasmDir);
-  const dir = resolve(dirArg);
 
   const provider = createNodeWasmProvider(wasmDir);
   await provider.initEngine();
@@ -101,6 +109,17 @@ async function main(): Promise<void> {
   };
   const pick = (ext: string) => (ext === '.ts' ? sel.ts : ext === '.tsx' ? sel.tsx : sel.js);
 
+  if (cmd === 'read') {
+    const file = resolve(targetArg);
+    const ext = extname(file);
+    const lang: LangId = ext === '.ts' || ext === '.tsx' ? 'typescript' : 'javascript';
+    const code = readFileSync(file, 'utf8');
+    const subs = pick(ext).engine.subtitle(code, lang, flags.locale);
+    process.stdout.write(renderRead(code, subs, { file: targetArg, locale: flags.locale }));
+    return;
+  }
+
+  const dir = resolve(targetArg);
   const repo = emptyRepoReport();
   let skipped = 0;
   for await (const f of walk(dir, { maxBytes: flags.maxBytes, maxLines: flags.maxLines })) {
